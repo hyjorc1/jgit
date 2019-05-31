@@ -1,4 +1,4 @@
-package org.eclipse.jgit.internal.storage.boa;
+package org.eclipse.jgit.internal.storage.file;
 
 import java.io.File;
 import java.io.FileFilter;

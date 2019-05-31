@@ -831,13 +831,13 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 
 			final String packName = base + PACK.getExtension();
 			final File packFile = new File(packDirectory, packName);
-			final PackFile oldPack = forReuse.remove(packName);
-			if (oldPack != null
-					&& !oldPack.getFileSnapshot().isModified(packFile)) {
-				list.add(oldPack);
-				continue;
-			}
-
+//			final PackFile oldPack = forReuse.remove(packName);
+//			if (oldPack != null
+//					&& !oldPack.getFileSnapshot().isModified(packFile)) {
+//				list.add(oldPack);
+//				continue;
+//			}
+			System.out.println("2?");
 			list.add(new PackFile(packFile, extensions));
 			foundNew = true;
 		}
