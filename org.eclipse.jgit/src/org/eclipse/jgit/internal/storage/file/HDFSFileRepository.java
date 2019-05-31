@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.text.MessageFormat;
 
 import org.eclipse.jgit.attributes.AttributesNodeProvider;
-import org.eclipse.jgit.boa.HDFSRepositoryBuilder;
 import org.eclipse.jgit.internal.JGitText;
 import org.eclipse.jgit.lib.BaseRepositoryBuilder;
 import org.eclipse.jgit.lib.ConfigConstants;

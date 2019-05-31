@@ -1,9 +1,8 @@
-package org.eclipse.jgit.boa;
+package org.eclipse.jgit.internal.storage.file;
 
 import java.io.IOException;
 
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
-import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.BaseRepositoryBuilder;
 import org.eclipse.jgit.lib.Repository;
 
@@ -25,7 +24,7 @@ public class HDFSRepositoryBuilder
 
 	@Override
 	public Repository build() throws IOException {
-		FileRepository repo = new FileRepository(setup());
+		HDFSFileRepository repo = new HDFSFileRepository(setup());
 		if (isMustExist() && !repo.getObjectDatabase().exists())
 			throw new RepositoryNotFoundException(getGitDir());
 		return repo;

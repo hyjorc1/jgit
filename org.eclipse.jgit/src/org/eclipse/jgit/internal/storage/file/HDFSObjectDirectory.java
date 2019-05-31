@@ -35,7 +35,7 @@ import org.eclipse.jgit.internal.storage.pack.PackWriter;
 import org.eclipse.jgit.lib.AbbreviatedObjectId;
 import org.eclipse.jgit.lib.AnyObjectId;
 import org.eclipse.jgit.lib.Config;
-import org.eclipse.jgit.lib.ConfigConstants;
+//import org.eclipse.jgit.lib.ConfigConstants;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectDatabase;
 import org.eclipse.jgit.lib.ObjectId;
@@ -54,58 +54,33 @@ import org.slf4j.LoggerFactory;
 public class HDFSObjectDirectory extends FileObjectDatabase {
 	private final static Logger LOG = LoggerFactory
 			.getLogger(HDFSObjectDirectory.class);
-
 	private static final PackList NO_PACKS = new PackList(FileSnapshot.DIRTY,
 			new PackFile[0]);
 
 	/** Maximum number of candidates offered as resolutions of abbreviation. */
 	private static final int RESOLVE_ABBREV_LIMIT = 256;
-
 	private final AlternateHandle handle = new AlternateHandle(this);
-
 	private final Config config;
-
 	private final File objects;
-
 	private final File infoDirectory;
-
 	private final File packDirectory;
-
 	private final File preservedDirectory;
-
 	private final File alternatesFile;
-
 	private final FS fs;
-
 	private final AtomicReference<AlternateHandle[]> alternates;
-
 	private final UnpackedObjectCache unpackedObjectCache;
-
 	private final File shallowFile;
-
 	private FileSnapshot shallowFileSnapshot = FileSnapshot.DIRTY;
-
 	private Set<ObjectId> shallowCommitsIds;
-
 	final AtomicReference<PackList> packList;
 
 	/**
-	 * Initialize a reference to an on-disk object directory.
-	 *
 	 * @param cfg
-	 *            configuration this directory consults for write settings.
 	 * @param dir
-	 *            the location of the <code>objects</code> directory.
 	 * @param alternatePaths
-	 *            a list of alternate object directories
 	 * @param fs
-	 *            the file system abstraction which will be necessary to perform
-	 *            certain file system operations.
 	 * @param shallowFile
-	 *            file which contains IDs of shallow commits, null if shallow
-	 *            commits handling should be turned off
-	 * @throws java.io.IOException
-	 *             an alternate object cannot be opened.
+	 * @throws IOException
 	 */
 	public HDFSObjectDirectory(final Config cfg, final File dir,
 			File[] alternatePaths, FS fs, File shallowFile) throws IOException {
@@ -137,16 +112,16 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		return objects;
 	}
 
-	/**
-	 * <p>
-	 * Getter for the field <code>packDirectory</code>.
-	 * </p>
-	 *
-	 * @return the location of the <code>pack</code> directory.
-	 */
-	public final File getPackDirectory() {
-		return packDirectory;
-	}
+	// /**
+	// * <p>
+	// * Getter for the field <code>packDirectory</code>.
+	// * </p>
+	// *
+	// * @return the location of the <code>pack</code> directory.
+	// */
+	// public final File getPackDirectory() {
+	// return packDirectory;
+	// }
 
 	/**
 	 * <p>
@@ -168,9 +143,9 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	/** {@inheritDoc} */
 	@Override
 	public void create() throws IOException {
-		FileUtils.mkdirs(objects);
-		FileUtils.mkdir(infoDirectory);
-		FileUtils.mkdir(packDirectory);
+		// FileUtils.mkdirs(objects);
+		// FileUtils.mkdir(infoDirectory);
+		// FileUtils.mkdir(packDirectory);
 	}
 
 	/** {@inheritDoc} */
@@ -364,17 +339,18 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	@Override
 	ObjectLoader openObject(WindowCursor curs, AnyObjectId objectId)
 			throws IOException {
-		if (unpackedObjectCache.isUnpacked(objectId)) {
-			ObjectLoader ldr = openLooseObject(curs, objectId);
-			if (ldr != null) {
-				return ldr;
-			}
-		}
+		// if (unpackedObjectCache.isUnpacked(objectId)) {
+		// ObjectLoader ldr = openLooseObject(curs, objectId);
+		// if (ldr != null) {
+		// return ldr;
+		// }
+		// }
 		ObjectLoader ldr = openPackedFromSelfOrAlternate(curs, objectId, null);
 		if (ldr != null) {
 			return ldr;
 		}
-		return openLooseFromSelfOrAlternate(curs, objectId, null);
+		return null;
+		// return openLooseFromSelfOrAlternate(curs, objectId, null);
 	}
 
 	private ObjectLoader openPackedFromSelfOrAlternate(WindowCursor curs,
@@ -383,38 +359,38 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		if (ldr != null) {
 			return ldr;
 		}
-		skips = addMe(skips);
-		for (AlternateHandle alt : myAlternates()) {
-			if (!skips.contains(alt.getId())) {
-				ldr = alt.db.openPackedFromSelfOrAlternate(curs, objectId,
-						skips);
-				if (ldr != null) {
-					return ldr;
-				}
-			}
-		}
+		// skips = addMe(skips);
+		// for (AlternateHandle alt : myAlternates()) {
+		// if (!skips.contains(alt.getId())) {
+		// ldr = alt.db.openPackedFromSelfOrAlternate(curs, objectId,
+		// skips);
+		// if (ldr != null) {
+		// return ldr;
+		// }
+		// }
+		// }
 		return null;
 	}
 
-	private ObjectLoader openLooseFromSelfOrAlternate(WindowCursor curs,
-			AnyObjectId objectId, Set<AlternateHandle.Id> skips)
-			throws IOException {
-		ObjectLoader ldr = openLooseObject(curs, objectId);
-		if (ldr != null) {
-			return ldr;
-		}
-		skips = addMe(skips);
-		for (AlternateHandle alt : myAlternates()) {
-			if (!skips.contains(alt.getId())) {
-				ldr = alt.db.openLooseFromSelfOrAlternate(curs, objectId,
-						skips);
-				if (ldr != null) {
-					return ldr;
-				}
-			}
-		}
-		return null;
-	}
+	// private ObjectLoader openLooseFromSelfOrAlternate(WindowCursor curs,
+	// AnyObjectId objectId, Set<AlternateHandle.Id> skips)
+	// throws IOException {
+	// ObjectLoader ldr = openLooseObject(curs, objectId);
+	// if (ldr != null) {
+	// return ldr;
+	// }
+	// skips = addMe(skips);
+	// for (AlternateHandle alt : myAlternates()) {
+	// if (!skips.contains(alt.getId())) {
+	// ldr = alt.db.openLooseFromSelfOrAlternate(curs, objectId,
+	// skips);
+	// if (ldr != null) {
+	// return ldr;
+	// }
+	// }
+	// }
+	// return null;
+	// }
 
 	ObjectLoader openPackedObject(WindowCursor curs, AnyObjectId objectId) {
 		PackList pList;
@@ -706,12 +682,18 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		// lastmodified attribute of the folder and assume that no new
 		// pack files can be in this folder if his modification time has
 		// not changed.
-		boolean trustFolderStat = config.getBoolean(
-				ConfigConstants.CONFIG_CORE_SECTION,
-				ConfigConstants.CONFIG_KEY_TRUSTFOLDERSTAT, true);
+//		boolean trustFolderStat = config.getBoolean(
+//				ConfigConstants.CONFIG_CORE_SECTION,
+//				ConfigConstants.CONFIG_KEY_TRUSTFOLDERSTAT, true);
 
-		return ((!trustFolderStat) || old.snapshot.isModified(packDirectory))
-				&& old != scanPacks(old);
+		// return ((!trustFolderStat) || old.snapshot.isModified(packDirectory))
+		// && old != scanPacks(old);
+
+		// boolean b1 = old.snapshot.isModified(packDirectory);
+		boolean b2 = old != scanPacks(old);
+		// System.out.println("searchPacksAgain " + b1 + " " + b2);
+		// return b1 && b2;
+		return b2;
 	}
 
 	@Override
@@ -821,6 +803,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 
 	private PackList scanPacksImpl(PackList old) {
 		final Map<String, PackFile> forReuse = reuseMap(old);
+		// snapshot
 		final FileSnapshot snapshot = FileSnapshot.save(packDirectory);
 		final Set<String> names = listPackDirectory();
 		final List<PackFile> list = new ArrayList<>(names.size() >> 2);
@@ -864,6 +847,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		// the same as the set we were given. Instead of building a new object
 		// return the same collection.
 		//
+		// snapshot
 		if (!foundNew && forReuse.isEmpty() && snapshot.equals(old.snapshot)) {
 			old.snapshot.setClean(snapshot);
 			return old;
