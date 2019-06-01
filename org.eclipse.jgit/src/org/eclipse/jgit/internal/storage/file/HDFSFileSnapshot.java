@@ -55,7 +55,7 @@ public class HDFSFileSnapshot {
 	 *            information is saved.
 	 * @return the snapshot.
 	 */
-	// different of FileSnaspshot
+	// TODO use HDFS File
 	public static HDFSFileSnapshot save(File path) {
 		long read = System.currentTimeMillis();
 		long modified;
@@ -130,6 +130,7 @@ public class HDFSFileSnapshot {
 	 *            the path the snapshot describes.
 	 * @return true if the path needs to be read again.
 	 */
+	// TODO use HDFS File
 	public boolean isModified(File path) {
 		long currLastModified;
 		long currSize;

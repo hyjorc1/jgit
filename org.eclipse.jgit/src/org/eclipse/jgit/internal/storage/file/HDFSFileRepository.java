@@ -34,6 +34,7 @@ public class HDFSFileRepository extends Repository {
 	 * @param options
 	 * @throws IOException
 	 */
+	// CHANGED remove some attributes and use HDFSObjectDirectory
 	public HDFSFileRepository(final BaseRepositoryBuilder<HDFSRepositoryBuilder, Repository> options) throws IOException {
 		super(options);
 
@@ -82,8 +83,7 @@ public class HDFSFileRepository extends Repository {
 
 	@Override
 	public void create(boolean bare) throws IOException {
-		// TODO Auto-generated method stub
-
+		// IGNOREME
 	}
 
 	@Override
@@ -103,25 +103,22 @@ public class HDFSFileRepository extends Repository {
 
 	@Override
 	public void scanForRepoChanges() throws IOException {
-		// TODO Auto-generated method stub
-
+		// IGNOREME
 	}
 
 	@Override
 	public ReflogReader getReflogReader(String refName) throws IOException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public AttributesNodeProvider createAttributesNodeProvider() {
-		// TODO Auto-generated method stub
 		return (AttributesNodeProvider) new Object();
 	}
 
 	@Override
 	public void notifyIndexChanged(boolean internal) {
-		// TODO Auto-generated method stub
+		// IGNOREME
 	}
 
 

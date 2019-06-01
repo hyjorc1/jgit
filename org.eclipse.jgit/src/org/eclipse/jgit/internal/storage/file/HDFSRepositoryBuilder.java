@@ -23,6 +23,7 @@ public class HDFSRepositoryBuilder
 	}
 
 	@Override
+	// CHANGED use HDFSFileRepository
 	public Repository build() throws IOException {
 		HDFSFileRepository repo = new HDFSFileRepository(setup());
 		if (isMustExist() && !repo.getObjectDatabase().exists())

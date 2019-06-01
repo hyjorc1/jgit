@@ -36,7 +36,7 @@ import org.eclipse.jgit.lib.AbbreviatedObjectId;
 import org.eclipse.jgit.lib.AnyObjectId;
 import org.eclipse.jgit.lib.Config;
 //import org.eclipse.jgit.lib.ConfigConstants;
-import org.eclipse.jgit.lib.Constants;
+//import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectDatabase;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
@@ -54,23 +54,33 @@ import org.slf4j.LoggerFactory;
 public class HDFSObjectDirectory extends FileObjectDatabase {
 	private final static Logger LOG = LoggerFactory
 			.getLogger(HDFSObjectDirectory.class);
-	private static final PackList NO_PACKS = new PackList(FileSnapshot.DIRTY,
+
+	private static final PackList NO_PACKS = new PackList(
+			HDFSFileSnapshot.DIRTY,
 			new PackFile[0]);
 
 	/** Maximum number of candidates offered as resolutions of abbreviation. */
-	private static final int RESOLVE_ABBREV_LIMIT = 256;
+	// private static final int RESOLVE_ABBREV_LIMIT = 256;
 	private final AlternateHandle handle = new AlternateHandle(this);
 	private final Config config;
+
+	// TODO use HDFSFIle
 	private final File objects;
 	private final File infoDirectory;
 	private final File packDirectory;
 	private final File preservedDirectory;
 	private final File alternatesFile;
+
+	// CHECKME FS?
 	private final FS fs;
+
 	private final AtomicReference<AlternateHandle[]> alternates;
 	private final UnpackedObjectCache unpackedObjectCache;
 	private final File shallowFile;
-	private FileSnapshot shallowFileSnapshot = FileSnapshot.DIRTY;
+
+	// CHANGED use HDFSFileSnapshot
+	private HDFSFileSnapshot shallowFileSnapshot = HDFSFileSnapshot.DIRTY;
+
 	private Set<ObjectId> shallowCommitsIds;
 	final AtomicReference<PackList> packList;
 
@@ -82,6 +92,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	 * @param shallowFile
 	 * @throws IOException
 	 */
+	// TODO use HDFSFile
 	public HDFSObjectDirectory(final Config cfg, final File dir,
 			File[] alternatePaths, FS fs, File shallowFile) throws IOException {
 		config = cfg;
@@ -112,16 +123,16 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		return objects;
 	}
 
-	// /**
-	// * <p>
-	// * Getter for the field <code>packDirectory</code>.
-	// * </p>
-	// *
-	// * @return the location of the <code>pack</code> directory.
-	// */
-	// public final File getPackDirectory() {
-	// return packDirectory;
-	// }
+	/**
+	 * <p>
+	 * Getter for the field <code>packDirectory</code>.
+	 * </p>
+	 *
+	 * @return the location of the <code>pack</code> directory.
+	 */
+	public final File getPackDirectory() {
+		return packDirectory;
+	}
 
 	/**
 	 * <p>
@@ -143,9 +154,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	/** {@inheritDoc} */
 	@Override
 	public void create() throws IOException {
-		// FileUtils.mkdirs(objects);
-		// FileUtils.mkdir(infoDirectory);
-		// FileUtils.mkdir(packDirectory);
+		// IGNOREME
 	}
 
 	/** {@inheritDoc} */
@@ -284,61 +293,63 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	@Override
 	void resolve(Set<ObjectId> matches, AbbreviatedObjectId id)
 			throws IOException {
-		resolve(matches, id, null);
+		// IGNOREME
+		// resolve(matches, id, null);
 	}
 
-	private void resolve(Set<ObjectId> matches, AbbreviatedObjectId id,
-			Set<AlternateHandle.Id> skips) throws IOException {
-		// Go through the packs once. If we didn't find any resolutions
-		// scan for new packs and check once more.
-		int oldSize = matches.size();
-		PackList pList;
-		do {
-			pList = packList.get();
-			for (PackFile p : pList.packs) {
-				try {
-					p.resolve(matches, id, RESOLVE_ABBREV_LIMIT);
-					p.resetTransientErrorCount();
-				} catch (IOException e) {
-					handlePackError(e, p);
-				}
-				if (matches.size() > RESOLVE_ABBREV_LIMIT)
-					return;
-			}
-		} while (matches.size() == oldSize && searchPacksAgain(pList));
-
-		String fanOut = id.name().substring(0, 2);
-		String[] entries = new File(getDirectory(), fanOut).list();
-		if (entries != null) {
-			for (String e : entries) {
-				if (e.length() != Constants.OBJECT_ID_STRING_LENGTH - 2)
-					continue;
-				try {
-					ObjectId entId = ObjectId.fromString(fanOut + e);
-					if (id.prefixCompare(entId) == 0)
-						matches.add(entId);
-				} catch (IllegalArgumentException notId) {
-					continue;
-				}
-				if (matches.size() > RESOLVE_ABBREV_LIMIT)
-					return;
-			}
-		}
-
-		skips = addMe(skips);
-		for (AlternateHandle alt : myAlternates()) {
-			if (!skips.contains(alt.getId())) {
-				alt.db.resolve(matches, id, skips);
-				if (matches.size() > RESOLVE_ABBREV_LIMIT) {
-					return;
-				}
-			}
-		}
-	}
+	// private void resolve(Set<ObjectId> matches, AbbreviatedObjectId id,
+	// Set<AlternateHandle.Id> skips) throws IOException {
+	// // Go through the packs once. If we didn't find any resolutions
+	// // scan for new packs and check once more.
+	// int oldSize = matches.size();
+	// PackList pList;
+	// do {
+	// pList = packList.get();
+	// for (PackFile p : pList.packs) {
+	// try {
+	// p.resolve(matches, id, RESOLVE_ABBREV_LIMIT);
+	// p.resetTransientErrorCount();
+	// } catch (IOException e) {
+	// handlePackError(e, p);
+	// }
+	// if (matches.size() > RESOLVE_ABBREV_LIMIT)
+	// return;
+	// }
+	// } while (matches.size() == oldSize && searchPacksAgain(pList));
+	//
+	// String fanOut = id.name().substring(0, 2);
+	// String[] entries = new File(getDirectory(), fanOut).list();
+	// if (entries != null) {
+	// for (String e : entries) {
+	// if (e.length() != Constants.OBJECT_ID_STRING_LENGTH - 2)
+	// continue;
+	// try {
+	// ObjectId entId = ObjectId.fromString(fanOut + e);
+	// if (id.prefixCompare(entId) == 0)
+	// matches.add(entId);
+	// } catch (IllegalArgumentException notId) {
+	// continue;
+	// }
+	// if (matches.size() > RESOLVE_ABBREV_LIMIT)
+	// return;
+	// }
+	// }
+	//
+	// skips = addMe(skips);
+	// for (AlternateHandle alt : myAlternates()) {
+	// if (!skips.contains(alt.getId())) {
+	// alt.db.resolve(matches, id, skips);
+	// if (matches.size() > RESOLVE_ABBREV_LIMIT) {
+	// return;
+	// }
+	// }
+	// }
+	// }
 
 	@Override
 	ObjectLoader openObject(WindowCursor curs, AnyObjectId objectId)
 			throws IOException {
+		// IGNOREME
 		// if (unpackedObjectCache.isUnpacked(objectId)) {
 		// ObjectLoader ldr = openLooseObject(curs, objectId);
 		// if (ldr != null) {
@@ -350,6 +361,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 			return ldr;
 		}
 		return null;
+		// IGNOREME
 		// return openLooseFromSelfOrAlternate(curs, objectId, null);
 	}
 
@@ -359,6 +371,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		if (ldr != null) {
 			return ldr;
 		}
+		// IGNOREME
 		// skips = addMe(skips);
 		// for (AlternateHandle alt : myAlternates()) {
 		// if (!skips.contains(alt.getId())) {
@@ -682,14 +695,16 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		// lastmodified attribute of the folder and assume that no new
 		// pack files can be in this folder if his modification time has
 		// not changed.
+
+		// IGNOREME
 //		boolean trustFolderStat = config.getBoolean(
 //				ConfigConstants.CONFIG_CORE_SECTION,
 //				ConfigConstants.CONFIG_KEY_TRUSTFOLDERSTAT, true);
 
 		// return ((!trustFolderStat) || old.snapshot.isModified(packDirectory))
 		// && old != scanPacks(old);
-
 		// boolean b1 = old.snapshot.isModified(packDirectory);
+
 		boolean b2 = old != scanPacks(old);
 		// System.out.println("searchPacksAgain " + b1 + " " + b2);
 		// return b1 && b2;
@@ -727,7 +742,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 				}
 			}
 
-			shallowFileSnapshot = FileSnapshot.save(shallowFile);
+			shallowFileSnapshot = HDFSFileSnapshot.save(shallowFile);
 		}
 
 		return shallowCommitsIds;
@@ -801,14 +816,20 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		}
 	}
 
+	// TODO
 	private PackList scanPacksImpl(PackList old) {
 		final Map<String, PackFile> forReuse = reuseMap(old);
 		// snapshot
-		final FileSnapshot snapshot = FileSnapshot.save(packDirectory);
+		final HDFSFileSnapshot snapshot = HDFSFileSnapshot.save(packDirectory);
 		final Set<String> names = listPackDirectory();
 		final List<PackFile> list = new ArrayList<>(names.size() >> 2);
 		boolean foundNew = false;
+
+		System.out.println("1");
+
 		for (String indexName : names) {
+			System.out.println("2 " + indexName);
+
 			// Must match "pack-[0-9a-f]{40}.idx" to be an index.
 			//
 			if (indexName.length() != 49 || !indexName.endsWith(".idx")) //$NON-NLS-1$
@@ -831,13 +852,21 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 
 			final String packName = base + PACK.getExtension();
 			final File packFile = new File(packDirectory, packName);
-//			final PackFile oldPack = forReuse.remove(packName);
-//			if (oldPack != null
-//					&& !oldPack.getFileSnapshot().isModified(packFile)) {
-//				list.add(oldPack);
-//				continue;
-//			}
-			System.out.println("2?");
+			// if cannot find the oid
+			final PackFile oldPack = forReuse.remove(packName);
+
+			boolean b1 = oldPack != null;
+			boolean b2 = oldPack != null
+					&& !oldPack.getFileSnapshot().isModified(packFile);
+
+			System.out.println(b1 + " " + b2);
+
+			if (b2) {
+				System.out.println("2.3");
+				list.add(oldPack);
+				continue;
+			}
+			System.out.println("2.5");
 			list.add(new PackFile(packFile, extensions));
 			foundNew = true;
 		}
@@ -850,15 +879,20 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		// snapshot
 		if (!foundNew && forReuse.isEmpty() && snapshot.equals(old.snapshot)) {
 			old.snapshot.setClean(snapshot);
+			System.out.println("3");
 			return old;
 		}
 
 		for (PackFile p : forReuse.values()) {
+			System.out.println("4");
 			p.close();
 		}
 
 		if (list.isEmpty())
 			return new PackList(snapshot, NO_PACKS.packs);
+
+		System.out
+				.println("5 " + list.size() + " " + list.get(0).getPackName());
 
 		final PackFile[] r = list.toArray(new PackFile[0]);
 		Arrays.sort(r, PackFile.SORT);
@@ -995,12 +1029,12 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 
 	static final class PackList {
 		/** State just before reading the pack directory. */
-		final FileSnapshot snapshot;
+		final HDFSFileSnapshot snapshot;
 
 		/** All known packs, sorted by {@link PackFile#SORT}. */
 		final PackFile[] packs;
 
-		PackList(FileSnapshot monitor, PackFile[] packs) {
+		PackList(HDFSFileSnapshot monitor, PackFile[] packs) {
 			this.snapshot = monitor;
 			this.packs = packs;
 		}
