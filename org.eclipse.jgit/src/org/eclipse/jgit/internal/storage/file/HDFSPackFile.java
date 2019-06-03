@@ -21,9 +21,9 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.CRC32;
+//import java.util.zip.CRC32;
 import java.util.zip.DataFormatException;
-import java.util.zip.Inflater;
+//import java.util.zip.Inflater;
 
 import org.eclipse.jgit.errors.CorruptObjectException;
 import org.eclipse.jgit.errors.LargeObjectException;
@@ -31,13 +31,13 @@ import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.errors.NoPackSignatureException;
 import org.eclipse.jgit.errors.PackInvalidException;
 import org.eclipse.jgit.errors.PackMismatchException;
-import org.eclipse.jgit.errors.StoredObjectRepresentationNotAvailableException;
+//import org.eclipse.jgit.errors.StoredObjectRepresentationNotAvailableException;
 import org.eclipse.jgit.errors.UnpackException;
 import org.eclipse.jgit.errors.UnsupportedPackIndexVersionException;
 import org.eclipse.jgit.errors.UnsupportedPackVersionException;
 import org.eclipse.jgit.internal.JGitText;
 import org.eclipse.jgit.internal.storage.pack.BinaryDelta;
-import org.eclipse.jgit.internal.storage.pack.ObjectToPack;
+//import org.eclipse.jgit.internal.storage.pack.ObjectToPack;
 import org.eclipse.jgit.internal.storage.pack.PackExt;
 import org.eclipse.jgit.internal.storage.pack.PackOutputStream;
 import org.eclipse.jgit.lib.AbbreviatedObjectId;
@@ -46,8 +46,8 @@ import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.util.LongList;
-import org.eclipse.jgit.util.NB;
-import org.eclipse.jgit.util.RawParseUtils;
+//import org.eclipse.jgit.util.NB;
+//import org.eclipse.jgit.util.RawParseUtils;
 
 /**
  * @author hyj
@@ -375,207 +375,207 @@ public class HDFSPackFile extends PackFile {
 		curs.copyPackAsIs(this, length, out);
 	}
 
-	@Override
-	final void copyAsIs(PackOutputStream out, LocalObjectToPack src,
-			boolean validate, WindowCursor curs) throws IOException,
-			StoredObjectRepresentationNotAvailableException {
-		beginCopyAsIs(src);
-		try {
-			copyAsIs2(out, src, validate, curs);
-		} finally {
-			endCopyAsIs();
-		}
-	}
+	// @Override
+	// final void copyAsIs(PackOutputStream out, LocalObjectToPack src,
+	// boolean validate, WindowCursor curs) throws IOException,
+	// StoredObjectRepresentationNotAvailableException {
+	// beginCopyAsIs(src);
+	// try {
+	// copyAsIs2(out, src, validate, curs);
+	// } finally {
+	// endCopyAsIs();
+	// }
+	// }
 
-	private void copyAsIs2(PackOutputStream out, LocalObjectToPack src,
-			boolean validate, WindowCursor curs) throws IOException,
-			StoredObjectRepresentationNotAvailableException {
-		final CRC32 crc1 = validate ? new CRC32() : null;
-		final CRC32 crc2 = validate ? new CRC32() : null;
-		final byte[] buf = out.getCopyBuffer();
-
-		// Rip apart the header so we can discover the size.
-		//
-		readFully(src.offset, buf, 0, 20, curs);
-		int c = buf[0] & 0xff;
-		final int typeCode = (c >> 4) & 7;
-		long inflatedLength = c & 15;
-		int shift = 4;
-		int headerCnt = 1;
-		while ((c & 0x80) != 0) {
-			c = buf[headerCnt++] & 0xff;
-			inflatedLength += ((long) (c & 0x7f)) << shift;
-			shift += 7;
-		}
-
-		if (typeCode == Constants.OBJ_OFS_DELTA) {
-			do {
-				c = buf[headerCnt++] & 0xff;
-			} while ((c & 128) != 0);
-			if (validate) {
-				assert (crc1 != null && crc2 != null);
-				crc1.update(buf, 0, headerCnt);
-				crc2.update(buf, 0, headerCnt);
-			}
-		} else if (typeCode == Constants.OBJ_REF_DELTA) {
-			if (validate) {
-				assert (crc1 != null && crc2 != null);
-				crc1.update(buf, 0, headerCnt);
-				crc2.update(buf, 0, headerCnt);
-			}
-
-			readFully(src.offset + headerCnt, buf, 0, 20, curs);
-			if (validate) {
-				assert (crc1 != null && crc2 != null);
-				crc1.update(buf, 0, 20);
-				crc2.update(buf, 0, 20);
-			}
-			headerCnt += 20;
-		} else if (validate) {
-			assert (crc1 != null && crc2 != null);
-			crc1.update(buf, 0, headerCnt);
-			crc2.update(buf, 0, headerCnt);
-		}
-
-		final long dataOffset = src.offset + headerCnt;
-		final long dataLength = src.length;
-		final long expectedCRC;
-		final ByteArrayWindow quickCopy;
-
-		// Verify the object isn't corrupt before sending. If it is,
-		// we report it missing instead.
-		//
-		try {
-			quickCopy = curs.quickCopy(this, dataOffset, dataLength);
-
-			if (validate && idx().hasCRC32Support()) {
-				assert (crc1 != null);
-				// Index has the CRC32 code cached, validate the object.
-				//
-				expectedCRC = idx().findCRC32(src);
-				if (quickCopy != null) {
-					quickCopy.crc32(crc1, dataOffset, (int) dataLength);
-				} else {
-					long pos = dataOffset;
-					long cnt = dataLength;
-					while (cnt > 0) {
-						final int n = (int) Math.min(cnt, buf.length);
-						readFully(pos, buf, 0, n, curs);
-						crc1.update(buf, 0, n);
-						pos += n;
-						cnt -= n;
-					}
-				}
-				if (crc1.getValue() != expectedCRC) {
-					setCorrupt(src.offset);
-					throw new CorruptObjectException(MessageFormat.format(
-							JGitText.get().objectAtHasBadZlibStream,
-							Long.valueOf(src.offset), getPackFile()));
-				}
-			} else if (validate) {
-				// We don't have a CRC32 code in the index, so compute it
-				// now while inflating the raw data to get zlib to tell us
-				// whether or not the data is safe.
-				//
-				Inflater inf = curs.inflater();
-				byte[] tmp = new byte[1024];
-				if (quickCopy != null) {
-					quickCopy.check(inf, tmp, dataOffset, (int) dataLength);
-				} else {
-					assert (crc1 != null);
-					long pos = dataOffset;
-					long cnt = dataLength;
-					while (cnt > 0) {
-						final int n = (int) Math.min(cnt, buf.length);
-						readFully(pos, buf, 0, n, curs);
-						crc1.update(buf, 0, n);
-						inf.setInput(buf, 0, n);
-						while (inf.inflate(tmp, 0, tmp.length) > 0)
-							continue;
-						pos += n;
-						cnt -= n;
-					}
-				}
-				if (!inf.finished() || inf.getBytesRead() != dataLength) {
-					setCorrupt(src.offset);
-					throw new EOFException(MessageFormat.format(
-							JGitText.get().shortCompressedStreamAt,
-							Long.valueOf(src.offset)));
-				}
-				assert (crc1 != null);
-				expectedCRC = crc1.getValue();
-			} else {
-				expectedCRC = -1;
-			}
-		} catch (DataFormatException dataFormat) {
-			setCorrupt(src.offset);
-
-			CorruptObjectException corruptObject = new CorruptObjectException(
-					MessageFormat.format(
-							JGitText.get().objectAtHasBadZlibStream,
-							Long.valueOf(src.offset), getPackFile()),
-					dataFormat);
-
-			throw new StoredObjectRepresentationNotAvailableException(src,
-					corruptObject);
-
-		} catch (IOException ioError) {
-			throw new StoredObjectRepresentationNotAvailableException(src,
-					ioError);
-		}
-
-		if (quickCopy != null) {
-			// The entire object fits into a single byte array window slice,
-			// and we have it pinned. Write this out without copying.
-			//
-			out.writeHeader(src, inflatedLength);
-			quickCopy.write(out, dataOffset, (int) dataLength);
-
-		} else if (dataLength <= buf.length) {
-			// Tiny optimization: Lots of objects are very small deltas or
-			// deflated commits that are likely to fit in the copy buffer.
-			//
-			if (!validate) {
-				long pos = dataOffset;
-				long cnt = dataLength;
-				while (cnt > 0) {
-					final int n = (int) Math.min(cnt, buf.length);
-					readFully(pos, buf, 0, n, curs);
-					pos += n;
-					cnt -= n;
-				}
-			}
-			out.writeHeader(src, inflatedLength);
-			out.write(buf, 0, (int) dataLength);
-		} else {
-			// Now we are committed to sending the object. As we spool it out,
-			// check its CRC32 code to make sure there wasn't corruption between
-			// the verification we did above, and us actually outputting it.
-			//
-			out.writeHeader(src, inflatedLength);
-			long pos = dataOffset;
-			long cnt = dataLength;
-			while (cnt > 0) {
-				final int n = (int) Math.min(cnt, buf.length);
-				readFully(pos, buf, 0, n, curs);
-				if (validate) {
-					assert (crc2 != null);
-					crc2.update(buf, 0, n);
-				}
-				out.write(buf, 0, n);
-				pos += n;
-				cnt -= n;
-			}
-			if (validate) {
-				assert (crc2 != null);
-				if (crc2.getValue() != expectedCRC) {
-					throw new CorruptObjectException(MessageFormat.format(
-							JGitText.get().objectAtHasBadZlibStream,
-							Long.valueOf(src.offset), getPackFile()));
-				}
-			}
-		}
-	}
+	// private void copyAsIs2(PackOutputStream out, LocalObjectToPack src,
+	// boolean validate, WindowCursor curs) throws IOException,
+	// StoredObjectRepresentationNotAvailableException {
+	// final CRC32 crc1 = validate ? new CRC32() : null;
+	// final CRC32 crc2 = validate ? new CRC32() : null;
+	// final byte[] buf = out.getCopyBuffer();
+	//
+	// // Rip apart the header so we can discover the size.
+	// //
+	// readFully(src.offset, buf, 0, 20, curs);
+	// int c = buf[0] & 0xff;
+	// final int typeCode = (c >> 4) & 7;
+	// long inflatedLength = c & 15;
+	// int shift = 4;
+	// int headerCnt = 1;
+	// while ((c & 0x80) != 0) {
+	// c = buf[headerCnt++] & 0xff;
+	// inflatedLength += ((long) (c & 0x7f)) << shift;
+	// shift += 7;
+	// }
+	//
+	// if (typeCode == Constants.OBJ_OFS_DELTA) {
+	// do {
+	// c = buf[headerCnt++] & 0xff;
+	// } while ((c & 128) != 0);
+	// if (validate) {
+	// assert (crc1 != null && crc2 != null);
+	// crc1.update(buf, 0, headerCnt);
+	// crc2.update(buf, 0, headerCnt);
+	// }
+	// } else if (typeCode == Constants.OBJ_REF_DELTA) {
+	// if (validate) {
+	// assert (crc1 != null && crc2 != null);
+	// crc1.update(buf, 0, headerCnt);
+	// crc2.update(buf, 0, headerCnt);
+	// }
+	//
+	// readFully(src.offset + headerCnt, buf, 0, 20, curs);
+	// if (validate) {
+	// assert (crc1 != null && crc2 != null);
+	// crc1.update(buf, 0, 20);
+	// crc2.update(buf, 0, 20);
+	// }
+	// headerCnt += 20;
+	// } else if (validate) {
+	// assert (crc1 != null && crc2 != null);
+	// crc1.update(buf, 0, headerCnt);
+	// crc2.update(buf, 0, headerCnt);
+	// }
+	//
+	// final long dataOffset = src.offset + headerCnt;
+	// final long dataLength = src.length;
+	// final long expectedCRC;
+	// final ByteArrayWindow quickCopy;
+	//
+	// // Verify the object isn't corrupt before sending. If it is,
+	// // we report it missing instead.
+	// //
+	// try {
+	// quickCopy = curs.quickCopy(this, dataOffset, dataLength);
+	//
+	// if (validate && idx().hasCRC32Support()) {
+	// assert (crc1 != null);
+	// // Index has the CRC32 code cached, validate the object.
+	// //
+	// expectedCRC = idx().findCRC32(src);
+	// if (quickCopy != null) {
+	// quickCopy.crc32(crc1, dataOffset, (int) dataLength);
+	// } else {
+	// long pos = dataOffset;
+	// long cnt = dataLength;
+	// while (cnt > 0) {
+	// final int n = (int) Math.min(cnt, buf.length);
+	// readFully(pos, buf, 0, n, curs);
+	// crc1.update(buf, 0, n);
+	// pos += n;
+	// cnt -= n;
+	// }
+	// }
+	// if (crc1.getValue() != expectedCRC) {
+	// setCorrupt(src.offset);
+	// throw new CorruptObjectException(MessageFormat.format(
+	// JGitText.get().objectAtHasBadZlibStream,
+	// Long.valueOf(src.offset), getPackFile()));
+	// }
+	// } else if (validate) {
+	// // We don't have a CRC32 code in the index, so compute it
+	// // now while inflating the raw data to get zlib to tell us
+	// // whether or not the data is safe.
+	// //
+	// Inflater inf = curs.inflater();
+	// byte[] tmp = new byte[1024];
+	// if (quickCopy != null) {
+	// quickCopy.check(inf, tmp, dataOffset, (int) dataLength);
+	// } else {
+	// assert (crc1 != null);
+	// long pos = dataOffset;
+	// long cnt = dataLength;
+	// while (cnt > 0) {
+	// final int n = (int) Math.min(cnt, buf.length);
+	// readFully(pos, buf, 0, n, curs);
+	// crc1.update(buf, 0, n);
+	// inf.setInput(buf, 0, n);
+	// while (inf.inflate(tmp, 0, tmp.length) > 0)
+	// continue;
+	// pos += n;
+	// cnt -= n;
+	// }
+	// }
+	// if (!inf.finished() || inf.getBytesRead() != dataLength) {
+	// setCorrupt(src.offset);
+	// throw new EOFException(MessageFormat.format(
+	// JGitText.get().shortCompressedStreamAt,
+	// Long.valueOf(src.offset)));
+	// }
+	// assert (crc1 != null);
+	// expectedCRC = crc1.getValue();
+	// } else {
+	// expectedCRC = -1;
+	// }
+	// } catch (DataFormatException dataFormat) {
+	// setCorrupt(src.offset);
+	//
+	// CorruptObjectException corruptObject = new CorruptObjectException(
+	// MessageFormat.format(
+	// JGitText.get().objectAtHasBadZlibStream,
+	// Long.valueOf(src.offset), getPackFile()),
+	// dataFormat);
+	//
+	// throw new StoredObjectRepresentationNotAvailableException(src,
+	// corruptObject);
+	//
+	// } catch (IOException ioError) {
+	// throw new StoredObjectRepresentationNotAvailableException(src,
+	// ioError);
+	// }
+	//
+	// if (quickCopy != null) {
+	// // The entire object fits into a single byte array window slice,
+	// // and we have it pinned. Write this out without copying.
+	// //
+	// out.writeHeader(src, inflatedLength);
+	// quickCopy.write(out, dataOffset, (int) dataLength);
+	//
+	// } else if (dataLength <= buf.length) {
+	// // Tiny optimization: Lots of objects are very small deltas or
+	// // deflated commits that are likely to fit in the copy buffer.
+	// //
+	// if (!validate) {
+	// long pos = dataOffset;
+	// long cnt = dataLength;
+	// while (cnt > 0) {
+	// final int n = (int) Math.min(cnt, buf.length);
+	// readFully(pos, buf, 0, n, curs);
+	// pos += n;
+	// cnt -= n;
+	// }
+	// }
+	// out.writeHeader(src, inflatedLength);
+	// out.write(buf, 0, (int) dataLength);
+	// } else {
+	// // Now we are committed to sending the object. As we spool it out,
+	// // check its CRC32 code to make sure there wasn't corruption between
+	// // the verification we did above, and us actually outputting it.
+	// //
+	// out.writeHeader(src, inflatedLength);
+	// long pos = dataOffset;
+	// long cnt = dataLength;
+	// while (cnt > 0) {
+	// final int n = (int) Math.min(cnt, buf.length);
+	// readFully(pos, buf, 0, n, curs);
+	// if (validate) {
+	// assert (crc2 != null);
+	// crc2.update(buf, 0, n);
+	// }
+	// out.write(buf, 0, n);
+	// pos += n;
+	// cnt -= n;
+	// }
+	// if (validate) {
+	// assert (crc2 != null);
+	// if (crc2.getValue() != expectedCRC) {
+	// throw new CorruptObjectException(MessageFormat.format(
+	// JGitText.get().objectAtHasBadZlibStream,
+	// Long.valueOf(src.offset), getPackFile()));
+	// }
+	// }
+	// }
+	// }
 
 	@Override
 	boolean invalid() {
@@ -599,26 +599,27 @@ public class HDFSPackFile extends PackFile {
 
 	private void readFully(final long position, final byte[] dstbuf, int dstoff,
 			final int cnt, final WindowCursor curs) throws IOException {
+		// CHECKME
 		if (curs.copy(this, position, dstbuf, dstoff, cnt) != cnt)
 			throw new EOFException();
 	}
 
-	private synchronized void beginCopyAsIs(ObjectToPack otp)
-			throws StoredObjectRepresentationNotAvailableException {
-		if (++activeCopyRawData == 1 && activeWindows == 0) {
-			try {
-				doOpen();
-			} catch (IOException thisPackNotValid) {
-				throw new StoredObjectRepresentationNotAvailableException(otp,
-						thisPackNotValid);
-			}
-		}
-	}
+	// private synchronized void beginCopyAsIs(ObjectToPack otp)
+	// throws StoredObjectRepresentationNotAvailableException {
+	// if (++activeCopyRawData == 1 && activeWindows == 0) {
+	// try {
+	// doOpen();
+	// } catch (IOException thisPackNotValid) {
+	// throw new StoredObjectRepresentationNotAvailableException(otp,
+	// thisPackNotValid);
+	// }
+	// }
+	// }
 
-	private synchronized void endCopyAsIs() {
-		if (--activeCopyRawData == 0 && activeWindows == 0)
-			doClose();
-	}
+	// private synchronized void endCopyAsIs() {
+	// if (--activeCopyRawData == 0 && activeWindows == 0)
+	// doClose();
+	// }
 
 	@Override
 	synchronized boolean beginWindowCache() throws IOException {
@@ -646,7 +647,8 @@ public class HDFSPackFile extends PackFile {
 			synchronized (readLock) {
 				fd = new RandomAccessFile(packFile, "r"); //$NON-NLS-1$
 				length = fd.length();
-				onOpenPack();
+				System.out.println("!!!!!!!!!!!");
+				// onOpenPack();
 			}
 		} catch (InterruptedIOException e) {
 			// don't invalidate the pack, we are interrupted from another thread
@@ -746,44 +748,43 @@ public class HDFSPackFile extends PackFile {
 		}
 	}
 
-	private void onOpenPack() throws IOException {
-		final PackIndex idx = idx();
-		final byte[] buf = new byte[20];
-
-		fd.seek(0);
-		fd.readFully(buf, 0, 12);
-		if (RawParseUtils.match(buf, 0, Constants.PACK_SIGNATURE) != 4) {
-			throw new NoPackSignatureException(JGitText.get().notAPACKFile);
-		}
-		final long vers = NB.decodeUInt32(buf, 4);
-		final long packCnt = NB.decodeUInt32(buf, 8);
-		if (vers != 2 && vers != 3) {
-			throw new UnsupportedPackVersionException(vers);
-		}
-
-		if (packCnt != idx.getObjectCount()) {
-			throw new PackMismatchException(
-					MessageFormat.format(JGitText.get().packObjectCountMismatch,
-							Long.valueOf(packCnt),
-							Long.valueOf(idx.getObjectCount()), getPackFile()));
-		}
-
-		fd.seek(length - 20);
-		fd.readFully(buf, 0, 20);
-		if (!Arrays.equals(buf, packChecksum)) {
-			throw new PackMismatchException(
-					MessageFormat.format(JGitText.get().packChecksumMismatch,
-							getPackFile(), ObjectId.fromRaw(buf).name(),
-							ObjectId.fromRaw(idx.packChecksum).name()));
-		}
-	}
+	// private void onOpenPack() throws IOException {
+	// final PackIndex idx = idx();
+	// final byte[] buf = new byte[20];
+	//
+	// fd.seek(0);
+	// fd.readFully(buf, 0, 12);
+	// if (RawParseUtils.match(buf, 0, Constants.PACK_SIGNATURE) != 4) {
+	// throw new NoPackSignatureException(JGitText.get().notAPACKFile);
+	// }
+	// final long vers = NB.decodeUInt32(buf, 4);
+	// final long packCnt = NB.decodeUInt32(buf, 8);
+	// if (vers != 2 && vers != 3) {
+	// throw new UnsupportedPackVersionException(vers);
+	// }
+	//
+	// if (packCnt != idx.getObjectCount()) {
+	// throw new PackMismatchException(
+	// MessageFormat.format(JGitText.get().packObjectCountMismatch,
+	// Long.valueOf(packCnt),
+	// Long.valueOf(idx.getObjectCount()), getPackFile()));
+	// }
+	//
+	// fd.seek(length - 20);
+	// fd.readFully(buf, 0, 20);
+	// if (!Arrays.equals(buf, packChecksum)) {
+	// throw new PackMismatchException(
+	// MessageFormat.format(JGitText.get().packChecksumMismatch,
+	// getPackFile(), ObjectId.fromRaw(buf).name(),
+	// ObjectId.fromRaw(idx.packChecksum).name()));
+	// }
+	// }
 
 	@Override
 	// CHECKME
 	ObjectLoader load(WindowCursor curs, long pos)
 			throws IOException, LargeObjectException {
 		try {
-			// CHECKME
 			final byte[] ib = curs.tempId;
 			Delta delta = null;
 			byte[] data = null;
@@ -791,6 +792,7 @@ public class HDFSPackFile extends PackFile {
 			boolean cached = false;
 
 			SEARCH: for (;;) {
+				// CHECKME
 				readFully(pos, ib, 0, 20, curs);
 				int c = ib[0] & 0xff;
 				final int typeCode = (c >> 4) & 7;
@@ -1174,21 +1176,21 @@ public class HDFSPackFile extends PackFile {
 		}
 	}
 
-	private void setCorrupt(long offset) {
-		LongList list = corruptObjects;
-		if (list == null) {
-			synchronized (readLock) {
-				list = corruptObjects;
-				if (list == null) {
-					list = new LongList();
-					corruptObjects = list;
-				}
-			}
-		}
-		synchronized (list) {
-			list.add(offset);
-		}
-	}
+	// private void setCorrupt(long offset) {
+	// LongList list = corruptObjects;
+	// if (list == null) {
+	// synchronized (readLock) {
+	// list = corruptObjects;
+	// if (list == null) {
+	// list = new LongList();
+	// corruptObjects = list;
+	// }
+	// }
+	// }
+	// synchronized (list) {
+	// list.add(offset);
+	// }
+	// }
 
 	// CHECKME
 	private File extFile(PackExt ext) {
