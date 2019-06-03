@@ -10,10 +10,10 @@ import org.eclipse.jgit.lib.Repository;
  * @author hyj
  *
  */
-public class HDFSRepositoryBuilder
-		extends BaseRepositoryBuilder<HDFSRepositoryBuilder, Repository> {
+public class ByteArrayRepositoryBuilder
+		extends BaseRepositoryBuilder<ByteArrayRepositoryBuilder, Repository> {
 	@Override
-	public HDFSRepositoryBuilder setup()
+	public ByteArrayRepositoryBuilder setup()
 			throws IllegalArgumentException, IOException {
 		setupWorkTree();
 		setupInternals();
@@ -24,8 +24,8 @@ public class HDFSRepositoryBuilder
 	protected void setupInternals() throws IOException {
 		// CHANGED use HDFSFile
 		if (getObjectDirectory() == null && getGitDir() != null)
-			if (getGitDir() instanceof HDFSFile) {
-				setObjectDirectory(((HDFSFile) getGitDir()).search("objects")); //$NON-NLS-1$
+			if (getGitDir() instanceof ByteArrayFile) {
+				setObjectDirectory(((ByteArrayFile) getGitDir()).search("objects")); //$NON-NLS-1$
 			} else {
 				setObjectDirectory(safeFS().resolve(getGitDir(), "objects")); //$NON-NLS-1$
 			}
@@ -34,7 +34,7 @@ public class HDFSRepositoryBuilder
 	@Override
 	public Repository build() throws IOException {
 		// CHANGED use HDFSFileRepository
-		HDFSFileRepository repo = new HDFSFileRepository(setup());
+		ByteArrayFileRepository repo = new ByteArrayFileRepository(setup());
 		if (isMustExist() && !repo.getObjectDatabase().exists())
 			throw new RepositoryNotFoundException(getGitDir());
 		return repo;

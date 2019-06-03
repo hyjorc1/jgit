@@ -36,22 +36,22 @@ import org.eclipse.jgit.util.LongList;
  * @author hyj
  *
  */
-public class HDFSPackFile extends PackFile {
+public class ByteArrayPackFile extends PackFile {
 	/**
 	 * Sorts PackFiles to be most recently created to least recently created.
 	 */
 
-	private final HDFSFile packFile;
+	private final ByteArrayFile packFile;
 
 	private final int extensions;
 
-	private HDFSFile keepFile;
+	private ByteArrayFile keepFile;
 
 	private volatile String packName;
 
 	final int HDFS_hash;
 
-	private HDFSFileInputStream fd;
+	private ByteArrayFileInputStream fd;
 
 	/** Serializes reads performed against. */
 	private final Object readLock = new Object();
@@ -95,7 +95,7 @@ public class HDFSPackFile extends PackFile {
 	 * @param extensions
 	 *            additional pack file extensions with the same base as the pack
 	 */
-	public HDFSPackFile(HDFSFile packFile, int extensions) {
+	public ByteArrayPackFile(ByteArrayFile packFile, int extensions) {
 		super(packFile, extensions);
 		this.packFile = packFile;
 		this.fileSnapshot = FileSnapshot.save(packFile);
@@ -121,7 +121,7 @@ public class HDFSPackFile extends PackFile {
 					}
 					try {
 						// CHECKME use HDFSPackIndex
-						idx = HDFSPackIndex.open(extFile(INDEX));
+						idx = ByteArrayPackIndex.open(extFile(INDEX));
 
 						if (packChecksum == null) {
 							packChecksum = idx.packChecksum;
@@ -157,7 +157,7 @@ public class HDFSPackFile extends PackFile {
 	 * @return the HDFSFile object which locates this pack on disk.
 	 */
 	@Override
-	public HDFSFile getPackFile() {
+	public ByteArrayFile getPackFile() {
 		return packFile;
 	}
 
@@ -401,7 +401,7 @@ public class HDFSPackFile extends PackFile {
 		try {
 			synchronized (readLock) {
 				// CHECKME
-				fd = new HDFSFileInputStream(packFile);
+				fd = new ByteArrayFileInputStream(packFile);
 				length = packFile.length();
 			}
 		} catch (RuntimeException ge) {
@@ -854,12 +854,12 @@ public class HDFSPackFile extends PackFile {
 		}
 	}
 
-	private HDFSFile extFile(PackExt ext) {
+	private ByteArrayFile extFile(PackExt ext) {
 		String p = packFile.getName();
 		int dot = p.lastIndexOf('.');
 		String b = (dot < 0) ? p : p.substring(0, dot);
 		// CHECKME
-		return new HDFSFile(packFile.getParentFile(),
+		return new ByteArrayFile(packFile.getParentFile(),
 				b + '.' + ext.getExtension());
 	}
 

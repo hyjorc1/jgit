@@ -7,12 +7,12 @@ import java.io.IOException;
  * @author hyj
  *
  */
-public class HDFSFileInputStream extends ByteArrayInputStream {
+public class ByteArrayFileInputStream extends ByteArrayInputStream {
 
 	/**
 	 * @param file
 	 */
-	public HDFSFileInputStream(HDFSFile file) {
+	public ByteArrayFileInputStream(ByteArrayFile file) {
 		super(file.getBytes());
 	}
 

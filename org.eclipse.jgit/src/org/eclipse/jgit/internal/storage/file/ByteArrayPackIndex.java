@@ -14,7 +14,7 @@ import org.eclipse.jgit.util.NB;
  * @author hyj
  *
  */
-public abstract class HDFSPackIndex extends PackIndex {
+public abstract class ByteArrayPackIndex extends PackIndex {
 
 	// TODO use HDFSFIleInputStream
 	/**
@@ -22,8 +22,8 @@ public abstract class HDFSPackIndex extends PackIndex {
 	 * @return null
 	 * @throws IOException
 	 */
-	public static PackIndex open(HDFSFile idxFile) throws IOException {
-		try (HDFSFileInputStream fd = new HDFSFileInputStream(idxFile)) {
+	public static PackIndex open(ByteArrayFile idxFile) throws IOException {
+		try (ByteArrayFileInputStream fd = new ByteArrayFileInputStream(idxFile)) {
 			return read(fd);
 		} catch (IOException ioe) {
 			throw new IOException(

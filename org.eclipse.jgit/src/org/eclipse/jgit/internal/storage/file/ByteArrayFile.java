@@ -18,15 +18,15 @@ import org.eclipse.jgit.util.FS;
  * @author hyj
  *
  */
-public class HDFSFile extends java.io.File {
+public class ByteArrayFile extends java.io.File {
 
 	private static final long serialVersionUID = 1L;
 
 	private boolean isDirectory;
 	private String path;
-	private HDFSFile parent;
+	private ByteArrayFile parent;
 	private int idx;
-	private List<HDFSFile> list;
+	private List<ByteArrayFile> list;
 	private byte[] bytes;
 
 	// for HDFSFileSnapshot
@@ -38,12 +38,12 @@ public class HDFSFile extends java.io.File {
 	/**
 	 * @param path
 	 */
-	public HDFSFile(String path) {
+	public ByteArrayFile(String path) {
 		super(path);
 		set(false, path, null, -1, null, null, -1, -1);
 	}
 
-	private HDFSFile(String path, HDFSFile parent, int idx) {
+	private ByteArrayFile(String path, ByteArrayFile parent, int idx) {
 		this(path);
 		this.parent = parent;
 		this.idx = idx;
@@ -53,18 +53,18 @@ public class HDFSFile extends java.io.File {
 	 * @param parent
 	 * @param child
 	 */
-	public HDFSFile(File parent, String child) {
+	public ByteArrayFile(File parent, String child) {
 		super(parent, child);
-		if (parent instanceof HDFSFile) {
-			HDFSFile f = ((HDFSFile) parent).findChild(child);
+		if (parent instanceof ByteArrayFile) {
+			ByteArrayFile f = ((ByteArrayFile) parent).findChild(child);
 			if (f != null)
 				set(f.isDirectory, f.path, f.parent, f.idx, f.list, f.bytes,
 						f.modified, f.size);
 		}
 	}
 
-	private void set(boolean isDirectory, String path, HDFSFile parent, int idx,
-			List<HDFSFile> list, byte[] bytes, long modified, long size) {
+	private void set(boolean isDirectory, String path, ByteArrayFile parent, int idx,
+			List<ByteArrayFile> list, byte[] bytes, long modified, long size) {
 		this.isDirectory = isDirectory;
 		this.path = path;
 		this.parent = parent;
@@ -75,10 +75,10 @@ public class HDFSFile extends java.io.File {
 		this.size = size;
 	}
 
-	private HDFSFile findChild(String child) {
-		HDFSFile file = null;
+	private ByteArrayFile findChild(String child) {
+		ByteArrayFile file = null;
 		if (isDirectory)
-			for (HDFSFile f : list)
+			for (ByteArrayFile f : list)
 				if (f.getName().equals(child))
 					file = f;
 		return file;
@@ -88,15 +88,15 @@ public class HDFSFile extends java.io.File {
 	 * @param name
 	 * @return cur or null
 	 */
-	public HDFSFile search(String name) {
-		LinkedList<HDFSFile> q = new LinkedList<>();
+	public ByteArrayFile search(String name) {
+		LinkedList<ByteArrayFile> q = new LinkedList<>();
 		q.offer(this);
 		while (!q.isEmpty()) {
-			HDFSFile cur = q.poll();
+			ByteArrayFile cur = q.poll();
 			if (cur.getName().equals(name))
 				return cur;
 			if (cur.isDirectory)
-				for (HDFSFile f : list)
+				for (ByteArrayFile f : list)
 					q.offer(f);
 		}
 		return null;
@@ -107,14 +107,14 @@ public class HDFSFile extends java.io.File {
 	/**
 	 * @return HDFSFile
 	 */
-	public HDFSFile build() {
+	public ByteArrayFile build() {
 		File file = new File(this.path);
 		Stack<File> files = new Stack<>();
-		Stack<HDFSFile> nodes = new Stack<>();
+		Stack<ByteArrayFile> nodes = new Stack<>();
 		nodes.push(this);
 		files.push(file);
 		while (!files.isEmpty()) {
-			HDFSFile curNode = nodes.pop();
+			ByteArrayFile curNode = nodes.pop();
 			File curFile = files.pop();
 			if (curFile.isFile()) {
 				curNode.updateModifiedAndSize(curFile);
@@ -125,7 +125,7 @@ public class HDFSFile extends java.io.File {
 				curNode.isDirectory = true;
 				curNode.list = new ArrayList<>();
 				for (File f : curFile.listFiles()) {
-					HDFSFile childNode = new HDFSFile(f.getPath(), curNode,
+					ByteArrayFile childNode = new ByteArrayFile(f.getPath(), curNode,
 							list.size());
 					curNode.list.add(childNode);
 					nodes.push(childNode);
@@ -186,19 +186,19 @@ public class HDFSFile extends java.io.File {
 	}
 
 	@SuppressWarnings("resource")
-	private void writeToFile(String parentPath, HDFSFile node)
+	private void writeToFile(String parentPath, ByteArrayFile node)
 			throws IOException {
 		Stack<String> parentPaths = new Stack<>();
-		Stack<HDFSFile> nodes = new Stack<>();
+		Stack<ByteArrayFile> nodes = new Stack<>();
 		nodes.push(node);
 		parentPaths.push(parentPath);
 		while (!nodes.isEmpty()) {
-			HDFSFile curNode = nodes.pop();
+			ByteArrayFile curNode = nodes.pop();
 			String curParentPath = parentPaths.pop();
 			if (curNode.isDirectory) {
 				curParentPath += File.separator + curNode.getName();
 				new File(curParentPath).mkdirs();
-				for (HDFSFile childNode : curNode.list) {
+				for (ByteArrayFile childNode : curNode.list) {
 					nodes.push(childNode);
 					parentPaths.push(curParentPath);
 				}
@@ -225,7 +225,7 @@ public class HDFSFile extends java.io.File {
 	/**
 	 * @return list
 	 */
-	public List<HDFSFile> getList() {
+	public List<ByteArrayFile> getList() {
 		return list;
 	}
 
@@ -273,7 +273,7 @@ public class HDFSFile extends java.io.File {
 	}
 
 	@Override
-	public HDFSFile getParentFile() {
+	public ByteArrayFile getParentFile() {
 		return parent;
 	}
 
@@ -293,7 +293,7 @@ public class HDFSFile extends java.io.File {
 	}
 
 	@Override
-	public HDFSFile getAbsoluteFile() {
+	public ByteArrayFile getAbsoluteFile() {
 		return this;
 	}
 
@@ -303,7 +303,7 @@ public class HDFSFile extends java.io.File {
 	}
 
 	@Override
-	public HDFSFile getCanonicalFile() {
+	public ByteArrayFile getCanonicalFile() {
 		return this;
 	}
 
@@ -397,32 +397,32 @@ public class HDFSFile extends java.io.File {
 	}
 
 	@Override
-	public HDFSFile[] listFiles() {
+	public ByteArrayFile[] listFiles() {
 		if (list != null)
-			return list.toArray(new HDFSFile[list.size()]);
+			return list.toArray(new ByteArrayFile[list.size()]);
 		return null;
 	}
 
 	@Override
-	public HDFSFile[] listFiles(FilenameFilter filter) {
+	public ByteArrayFile[] listFiles(FilenameFilter filter) {
 		if (list == null)
 			return null;
-		ArrayList<HDFSFile> files = new ArrayList<>();
-		for (HDFSFile n : list)
+		ArrayList<ByteArrayFile> files = new ArrayList<>();
+		for (ByteArrayFile n : list)
 			if ((filter == null) || filter.accept(this, n.getName()))
 				files.add(n);
-		return files.toArray(new HDFSFile[files.size()]);
+		return files.toArray(new ByteArrayFile[files.size()]);
 	}
 
 	@Override
-	public HDFSFile[] listFiles(FileFilter filter) {
+	public ByteArrayFile[] listFiles(FileFilter filter) {
 		if (list == null)
 			return null;
-		ArrayList<HDFSFile> files = new ArrayList<>();
-		for (HDFSFile n : list)
+		ArrayList<ByteArrayFile> files = new ArrayList<>();
+		for (ByteArrayFile n : list)
 			if ((filter == null) || filter.accept(n))
 				files.add(n);
-		return files.toArray(new HDFSFile[files.size()]);
+		return files.toArray(new ByteArrayFile[files.size()]);
 	}
 
 	@Override
@@ -496,8 +496,8 @@ public class HDFSFile extends java.io.File {
 
 	@Override
 	public boolean equals(Object obj) {
-		if ((obj != null) && (obj instanceof HDFSFile))
-			return compareTo((HDFSFile) obj) == 0;
+		if ((obj != null) && (obj instanceof ByteArrayFile))
+			return compareTo((ByteArrayFile) obj) == 0;
 		return false;
 	}
 

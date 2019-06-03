@@ -45,28 +45,28 @@ import org.slf4j.LoggerFactory;
  * @author hyj
  *
  */
-public class HDFSObjectDirectory extends FileObjectDatabase {
+public class ByteArrayObjectDirectory extends FileObjectDatabase {
 	private final static Logger LOG = LoggerFactory
-			.getLogger(HDFSObjectDirectory.class);
+			.getLogger(ByteArrayObjectDirectory.class);
 
 	private static final PackList NO_PACKS = new PackList(
 			FileSnapshot.DIRTY,
-			new HDFSPackFile[0]);
+			new ByteArrayPackFile[0]);
 
 	private final AlternateHandle handle = new AlternateHandle(this);
 	private final Config config;
 
-	private final HDFSFile objects;
-	private final HDFSFile infoDirectory;
-	private final HDFSFile packDirectory;
-	private final HDFSFile preservedDirectory;
-	private final HDFSFile alternatesFile;
+	private final ByteArrayFile objects;
+	private final ByteArrayFile infoDirectory;
+	private final ByteArrayFile packDirectory;
+	private final ByteArrayFile preservedDirectory;
+	private final ByteArrayFile alternatesFile;
 
 	private final FS fs;
 
 	private final AtomicReference<AlternateHandle[]> alternates;
 	private final UnpackedObjectCache unpackedObjectCache;
-	private final HDFSFile shallowFile;
+	private final ByteArrayFile shallowFile;
 
 	private FileSnapshot shallowFileSnapshot = FileSnapshot.DIRTY;
 
@@ -81,15 +81,15 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	 * @throws IOException
 	 */
 	// TODO use HDFSFile
-	public HDFSObjectDirectory(final Config cfg, final HDFSFile dir, FS fs,
-			HDFSFile shallowFile) throws IOException {
+	public ByteArrayObjectDirectory(final Config cfg, final ByteArrayFile dir, FS fs,
+			ByteArrayFile shallowFile) throws IOException {
 		config = cfg;
 		objects = dir;
-		infoDirectory = new HDFSFile(objects, "info"); //$NON-NLS-1$
-		packDirectory = new HDFSFile(objects, "pack"); //$NON-NLS-1$
+		infoDirectory = new ByteArrayFile(objects, "info"); //$NON-NLS-1$
+		packDirectory = new ByteArrayFile(objects, "pack"); //$NON-NLS-1$
 
-		preservedDirectory = new HDFSFile(packDirectory, "preserved"); //$NON-NLS-1$
-		alternatesFile = new HDFSFile(infoDirectory, "alternates"); //$NON-NLS-1$
+		preservedDirectory = new ByteArrayFile(packDirectory, "preserved"); //$NON-NLS-1$
+		alternatesFile = new ByteArrayFile(infoDirectory, "alternates"); //$NON-NLS-1$
 		packList = new AtomicReference<>(NO_PACKS);
 		unpackedObjectCache = new UnpackedObjectCache();
 		this.fs = fs;
@@ -100,7 +100,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 
 	/** {@inheritDoc} */
 	@Override
-	public final HDFSFile getDirectory() {
+	public final ByteArrayFile getDirectory() {
 		return objects;
 	}
 
@@ -111,7 +111,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	 *
 	 * @return the location of the <code>pack</code> directory.
 	 */
-	public final HDFSFile getPackDirectory() {
+	public final ByteArrayFile getPackDirectory() {
 		return packDirectory;
 	}
 
@@ -122,7 +122,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	 *
 	 * @return the location of the <code>preserved</code> directory.
 	 */
-	public final HDFSFile getPreservedDirectory() {
+	public final ByteArrayFile getPreservedDirectory() {
 		return preservedDirectory;
 	}
 
@@ -151,7 +151,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 
 		final PackList packs = packList.get();
 		if (packs != NO_PACKS && packList.compareAndSet(packs, NO_PACKS)) {
-			for (HDFSPackFile p : packs.packs)
+			for (ByteArrayPackFile p : packs.packs)
 				p.close();
 		}
 		// Fully close all loaded alternates and clear the alternate list.
@@ -168,7 +168,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		PackList list = packList.get();
 		if (list == NO_PACKS)
 			list = scanPacks(list);
-		HDFSPackFile[] packs = list.packs;
+		ByteArrayPackFile[] packs = list.packs;
 		return Collections.unmodifiableCollection(Arrays.asList(packs));
 	}
 
@@ -178,8 +178,8 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	 * Add a single existing pack to the list of available pack files.
 	 */
 	@Override
-	public HDFSPackFile openPack(File pack) throws IOException {
-		return (HDFSPackFile) (new Object());
+	public ByteArrayPackFile openPack(File pack) throws IOException {
+		return (ByteArrayPackFile) (new Object());
 	}
 
 	/** {@inheritDoc} */
@@ -232,7 +232,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		PackList pList;
 		do {
 			pList = packList.get();
-			for (HDFSPackFile p : pList.packs) {
+			for (ByteArrayPackFile p : pList.packs) {
 				try {
 					if (p.hasObject(objectId))
 						return true;
@@ -280,7 +280,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		do {
 			SEARCH: for (;;) {
 				pList = packList.get();
-				for (HDFSPackFile p : pList.packs) {
+				for (ByteArrayPackFile p : pList.packs) {
 					try {
 						ObjectLoader ldr = p.get(curs, objectId);
 						p.resetTransientErrorCount();
@@ -317,7 +317,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		// IGNOREME
 	}
 
-	private void handlePackError(IOException e, HDFSPackFile p) {
+	private void handlePackError(IOException e, ByteArrayPackFile p) {
 		String warnTmpl = null;
 		int transientErrorCount = 0;
 		String errTmpl = JGitText.get().exceptionWhileReadingPack;
@@ -426,17 +426,17 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		return shallowCommitsIds;
 	}
 
-	private void removePack(HDFSPackFile deadPack) {
+	private void removePack(ByteArrayPackFile deadPack) {
 		PackList o, n;
 		do {
 			o = packList.get();
 
-			final HDFSPackFile[] oldList = o.packs;
+			final ByteArrayPackFile[] oldList = o.packs;
 			final int j = indexOf(oldList, deadPack);
 			if (j < 0)
 				break;
 
-			final HDFSPackFile[] newList = new HDFSPackFile[oldList.length - 1];
+			final ByteArrayPackFile[] newList = new ByteArrayPackFile[oldList.length - 1];
 			System.arraycopy(oldList, 0, newList, 0, j);
 			System.arraycopy(oldList, j + 1, newList, j, newList.length - j);
 			n = new PackList(o.snapshot, newList);
@@ -444,7 +444,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		deadPack.close();
 	}
 
-	private static int indexOf(HDFSPackFile[] list, HDFSPackFile pack) {
+	private static int indexOf(ByteArrayPackFile[] list, ByteArrayPackFile pack) {
 		for (int i = 0; i < list.length; i++) {
 			if (list[i] == pack)
 				return i;
@@ -472,11 +472,11 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	}
 
 	private PackList scanPacksImpl(PackList old) {
-		final Map<String, HDFSPackFile> forReuse = reuseMap(old);
+		final Map<String, ByteArrayPackFile> forReuse = reuseMap(old);
 		// snapshot
 		final FileSnapshot snapshot = FileSnapshot.save(packDirectory);
 		final Set<String> names = listPackDirectory();
-		final List<HDFSPackFile> list = new ArrayList<>(names.size() >> 2);
+		final List<ByteArrayPackFile> list = new ArrayList<>(names.size() >> 2);
 		boolean foundNew = false;
 
 		for (String indexName : names) {
@@ -502,16 +502,16 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 			}
 
 			final String packName = base + PACK.getExtension();
-			final HDFSFile packFile = new HDFSFile(packDirectory, packName);
+			final ByteArrayFile packFile = new ByteArrayFile(packDirectory, packName);
 			// if cannot find the oid
-			final HDFSPackFile oldPack = forReuse.remove(packName);
+			final ByteArrayPackFile oldPack = forReuse.remove(packName);
 
 			if (oldPack != null
 					&& !oldPack.getFileSnapshot().isModified(packFile)) {
 				list.add(oldPack);
 				continue;
 			}
-			list.add(new HDFSPackFile(packFile, extensions));
+			list.add(new ByteArrayPackFile(packFile, extensions));
 			foundNew = true;
 		}
 
@@ -526,21 +526,21 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 			return old;
 		}
 
-		for (HDFSPackFile p : forReuse.values()) {
+		for (ByteArrayPackFile p : forReuse.values()) {
 			p.close();
 		}
 
 		if (list.isEmpty())
 			return new PackList(snapshot, NO_PACKS.packs);
 
-		final HDFSPackFile[] r = list.toArray(new HDFSPackFile[0]);
+		final ByteArrayPackFile[] r = list.toArray(new ByteArrayPackFile[0]);
 		Arrays.sort(r, PackFile.SORT);
 		return new PackList(snapshot, r);
 	}
 
-	private static Map<String, HDFSPackFile> reuseMap(PackList old) {
-		final Map<String, HDFSPackFile> forReuse = new HashMap<>();
-		for (HDFSPackFile p : old.packs) {
+	private static Map<String, ByteArrayPackFile> reuseMap(PackList old) {
+		final Map<String, ByteArrayPackFile> forReuse = new HashMap<>();
+		for (ByteArrayPackFile p : old.packs) {
 			if (p.invalid()) {
 				// The pack instance is corrupted, and cannot be safely used
 				// again. Do not include it in our reuse map.
@@ -549,7 +549,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 				continue;
 			}
 
-			final HDFSPackFile prior = forReuse.put(p.getPackFile().getName(), p);
+			final ByteArrayPackFile prior = forReuse.put(p.getPackFile().getName(), p);
 			if (prior != null) {
 				// This should never occur. It should be impossible for us
 				// to have two pack files with the same name, as all of them
@@ -638,10 +638,10 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		/** State just before reading the pack directory. */
 		final FileSnapshot snapshot;
 
-		/** All known packs, sorted by {@link HDFSPackFile#SORT}. */
-		final HDFSPackFile[] packs;
+		/** All known packs, sorted by {@link ByteArrayPackFile#SORT}. */
+		final ByteArrayPackFile[] packs;
 
-		PackList(FileSnapshot monitor, HDFSPackFile[] packs) {
+		PackList(FileSnapshot monitor, ByteArrayPackFile[] packs) {
 			this.snapshot = monitor;
 			this.packs = packs;
 		}
@@ -680,9 +680,9 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 			}
 		}
 
-		final HDFSObjectDirectory db;
+		final ByteArrayObjectDirectory db;
 
-		AlternateHandle(HDFSObjectDirectory db) {
+		AlternateHandle(ByteArrayObjectDirectory db) {
 			this.db = db;
 		}
 
@@ -696,9 +696,9 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	}
 
 	static class AlternateRepository extends AlternateHandle {
-		final HDFSFileRepository repository;
+		final ByteArrayFileRepository repository;
 
-		AlternateRepository(HDFSFileRepository r) {
+		AlternateRepository(ByteArrayFileRepository r) {
 			super(r.getObjectDatabase());
 			repository = r;
 		}

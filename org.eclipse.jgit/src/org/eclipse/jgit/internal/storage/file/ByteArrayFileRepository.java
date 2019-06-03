@@ -21,20 +21,20 @@ import org.eclipse.jgit.util.SystemReader;
  * @author hyj
  *
  */
-public class HDFSFileRepository extends Repository {
+public class ByteArrayFileRepository extends Repository {
 
 	private final FileBasedConfig systemConfig;
 	private final FileBasedConfig userConfig;
 	private final FileBasedConfig repoConfig;
 
-	private final HDFSObjectDirectory objectDatabase;
+	private final ByteArrayObjectDirectory objectDatabase;
 
 	/**
 	 * @param options
 	 * @throws IOException
 	 */
 
-	public HDFSFileRepository(final BaseRepositoryBuilder<HDFSRepositoryBuilder, Repository> options) throws IOException {
+	public ByteArrayFileRepository(final BaseRepositoryBuilder<ByteArrayRepositoryBuilder, Repository> options) throws IOException {
 		super(options);
 
 		if (StringUtils.isEmptyOrNull(SystemReader.getInstance().getenv(
@@ -64,10 +64,10 @@ public class HDFSFileRepository extends Repository {
 		repoConfig.addChangeListener(this::fireEvent);
 
 		// CHANGED use HDFSObjectDirectory
-		objectDatabase = new HDFSObjectDirectory(repoConfig,
-				(HDFSFile) options.getObjectDirectory(),
+		objectDatabase = new ByteArrayObjectDirectory(repoConfig,
+				(ByteArrayFile) options.getObjectDirectory(),
 				getFS(),
-				new HDFSFile(getDirectory(), Constants.SHALLOW));
+				new ByteArrayFile(getDirectory(), Constants.SHALLOW));
 	}
 
 	@Override
@@ -76,7 +76,7 @@ public class HDFSFileRepository extends Repository {
 	}
 
 	@Override
-	public HDFSObjectDirectory getObjectDatabase() {
+	public ByteArrayObjectDirectory getObjectDatabase() {
 		return objectDatabase;
 	}
 
