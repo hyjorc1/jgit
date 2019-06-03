@@ -21,7 +21,7 @@ public class HDFSFileInputStream extends ByteArrayInputStream {
 		try {
 			super.close();
 		} catch (IOException e) {
-			// Ignore
+			// IGNOREME
 		}
 	}
 }

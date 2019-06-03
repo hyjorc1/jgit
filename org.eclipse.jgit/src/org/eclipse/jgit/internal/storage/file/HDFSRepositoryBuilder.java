@@ -15,16 +15,25 @@ public class HDFSRepositoryBuilder
 	@Override
 	public HDFSRepositoryBuilder setup()
 			throws IllegalArgumentException, IOException {
-		requireGitDirOrWorkTree();
-		setupGitDir();
 		setupWorkTree();
 		setupInternals();
 		return self();
 	}
 
 	@Override
-	// CHANGED use HDFSFileRepository
+	protected void setupInternals() throws IOException {
+		// CHANGED use HDFSFile
+		if (getObjectDirectory() == null && getGitDir() != null)
+			if (getGitDir() instanceof HDFSFile) {
+				setObjectDirectory(((HDFSFile) getGitDir()).search("objects")); //$NON-NLS-1$
+			} else {
+				setObjectDirectory(safeFS().resolve(getGitDir(), "objects")); //$NON-NLS-1$
+			}
+	}
+
+	@Override
 	public Repository build() throws IOException {
+		// CHANGED use HDFSFileRepository
 		HDFSFileRepository repo = new HDFSFileRepository(setup());
 		if (isMustExist() && !repo.getObjectDatabase().exists())
 			throw new RepositoryNotFoundException(getGitDir());

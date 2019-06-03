@@ -8,6 +8,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
@@ -42,8 +43,8 @@ public class HDFSFile extends java.io.File {
 		set(false, path, null, -1, null, null, -1, -1);
 	}
 
-	private HDFSFile(String name, HDFSFile parent, int idx) {
-		this(name);
+	private HDFSFile(String path, HDFSFile parent, int idx) {
+		this(path);
 		this.parent = parent;
 		this.idx = idx;
 	}
@@ -52,11 +53,14 @@ public class HDFSFile extends java.io.File {
 	 * @param parent
 	 * @param child
 	 */
-	public HDFSFile(HDFSFile parent, String child) {
+	public HDFSFile(File parent, String child) {
 		super(parent, child);
-		HDFSFile f = parent.findChild(child);
-		set(f.isDirectory, f.path, f.parent, f.idx, f.list, f.bytes, f.modified,
-				f.size);
+		if (parent instanceof HDFSFile) {
+			HDFSFile f = ((HDFSFile) parent).findChild(child);
+			if (f != null)
+				set(f.isDirectory, f.path, f.parent, f.idx, f.list, f.bytes,
+						f.modified, f.size);
+		}
 	}
 
 	private void set(boolean isDirectory, String path, HDFSFile parent, int idx,
@@ -73,10 +77,29 @@ public class HDFSFile extends java.io.File {
 
 	private HDFSFile findChild(String child) {
 		HDFSFile file = null;
-		for (HDFSFile f : list)
-			if (f.getName().equals(child))
-				file = f;
+		if (isDirectory)
+			for (HDFSFile f : list)
+				if (f.getName().equals(child))
+					file = f;
 		return file;
+	}
+
+	/**
+	 * @param name
+	 * @return cur or null
+	 */
+	public HDFSFile search(String name) {
+		LinkedList<HDFSFile> q = new LinkedList<>();
+		q.offer(this);
+		while (!q.isEmpty()) {
+			HDFSFile cur = q.poll();
+			if (cur.getName().equals(name))
+				return cur;
+			if (cur.isDirectory)
+				for (HDFSFile f : list)
+					q.offer(f);
+		}
+		return null;
 	}
 
 	/* -- build HDFSFile -- */
@@ -102,7 +125,7 @@ public class HDFSFile extends java.io.File {
 				curNode.isDirectory = true;
 				curNode.list = new ArrayList<>();
 				for (File f : curFile.listFiles()) {
-					HDFSFile childNode = new HDFSFile(f.getName(), curNode,
+					HDFSFile childNode = new HDFSFile(f.getPath(), curNode,
 							list.size());
 					curNode.list.add(childNode);
 					nodes.push(childNode);

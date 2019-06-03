@@ -1,6 +1,5 @@
 package org.eclipse.jgit.internal.storage.file;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
@@ -10,7 +9,6 @@ import org.eclipse.jgit.errors.UnsupportedPackIndexVersionException;
 import org.eclipse.jgit.internal.JGitText;
 import org.eclipse.jgit.util.IO;
 import org.eclipse.jgit.util.NB;
-import org.eclipse.jgit.util.io.SilentFileInputStream;
 
 /**
  * @author hyj
@@ -19,8 +17,13 @@ import org.eclipse.jgit.util.io.SilentFileInputStream;
 public abstract class HDFSPackIndex extends PackIndex {
 
 	// TODO use HDFSFIleInputStream
-	public static PackIndex open(File idxFile) throws IOException {
-		try (SilentFileInputStream fd = new SilentFileInputStream(idxFile)) {
+	/**
+	 * @param idxFile
+	 * @return null
+	 * @throws IOException
+	 */
+	public static PackIndex open(HDFSFile idxFile) throws IOException {
+		try (HDFSFileInputStream fd = new HDFSFileInputStream(idxFile)) {
 			return read(fd);
 		} catch (IOException ioe) {
 			throw new IOException(

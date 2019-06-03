@@ -1,13 +1,12 @@
 package org.eclipse.jgit.internal.storage.file;
 
-import java.io.File;
 import java.io.IOException;
-import java.text.MessageFormat;
+//import java.text.MessageFormat;
 
 import org.eclipse.jgit.attributes.AttributesNodeProvider;
-import org.eclipse.jgit.internal.JGitText;
+//import org.eclipse.jgit.internal.JGitText;
 import org.eclipse.jgit.lib.BaseRepositoryBuilder;
-import org.eclipse.jgit.lib.ConfigConstants;
+//import org.eclipse.jgit.lib.ConfigConstants;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.RefDatabase;
 import org.eclipse.jgit.lib.ReflogReader;
@@ -34,7 +33,7 @@ public class HDFSFileRepository extends Repository {
 	 * @param options
 	 * @throws IOException
 	 */
-	// CHANGED remove some attributes and use HDFSObjectDirectory
+
 	public HDFSFileRepository(final BaseRepositoryBuilder<HDFSRepositoryBuilder, Repository> options) throws IOException {
 		super(options);
 
@@ -57,28 +56,18 @@ public class HDFSFileRepository extends Repository {
 			};
 		userConfig = SystemReader.getInstance().openUserConfig(systemConfig,
 				getFS());
+
 		repoConfig = new FileBasedConfig(userConfig, getFS().resolve(
 				getDirectory(), Constants.CONFIG),
 				getFS());
 
 		repoConfig.addChangeListener(this::fireEvent);
 
-		final long repositoryFormatVersion = getConfig().getLong(
-				ConfigConstants.CONFIG_CORE_SECTION, null,
-				ConfigConstants.CONFIG_KEY_REPO_FORMAT_VERSION, 0);
-
-		objectDatabase = new HDFSObjectDirectory(repoConfig, //
-				options.getObjectDirectory(), //
-				options.getAlternateObjectDirectories(), //
-				getFS(), //
-				new File(getDirectory(), Constants.SHALLOW));
-
-		if (objectDatabase.exists()) {
-			if (repositoryFormatVersion > 1)
-				throw new IOException(MessageFormat.format(
-						JGitText.get().unknownRepositoryFormat2,
-						Long.valueOf(repositoryFormatVersion)));
-		}
+		// CHANGED use HDFSObjectDirectory
+		objectDatabase = new HDFSObjectDirectory(repoConfig,
+				(HDFSFile) options.getObjectDirectory(),
+				getFS(),
+				new HDFSFile(getDirectory(), Constants.SHALLOW));
 	}
 
 	@Override
@@ -120,6 +109,5 @@ public class HDFSFileRepository extends Repository {
 	public void notifyIndexChanged(boolean internal) {
 		// IGNOREME
 	}
-
 
 }
