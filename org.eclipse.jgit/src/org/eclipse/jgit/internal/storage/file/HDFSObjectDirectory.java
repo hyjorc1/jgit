@@ -57,7 +57,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 
 	private static final PackList NO_PACKS = new PackList(
 			HDFSFileSnapshot.DIRTY,
-			new PackFile[0]);
+			new HDFSPackFile[0]);
 
 	/** Maximum number of candidates offered as resolutions of abbreviation. */
 	// private static final int RESOLVE_ABBREV_LIMIT = 256;
@@ -170,7 +170,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 
 		final PackList packs = packList.get();
 		if (packs != NO_PACKS && packList.compareAndSet(packs, NO_PACKS)) {
-			for (PackFile p : packs.packs)
+			for (HDFSPackFile p : packs.packs)
 				p.close();
 		}
 
@@ -188,7 +188,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		PackList list = packList.get();
 		if (list == NO_PACKS)
 			list = scanPacks(list);
-		PackFile[] packs = list.packs;
+		HDFSPackFile[] packs = list.packs;
 		return Collections.unmodifiableCollection(Arrays.asList(packs));
 	}
 
@@ -198,7 +198,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	 * Add a single existing pack to the list of available pack files.
 	 */
 	@Override
-	public PackFile openPack(File pack) throws IOException {
+	public HDFSPackFile openPack(File pack) throws IOException {
 		final String p = pack.getName();
 		if (p.length() != 50 || !p.startsWith("pack-") || !p.endsWith(".pack")) //$NON-NLS-1$ //$NON-NLS-2$
 			throw new IOException(
@@ -217,7 +217,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 			}
 		}
 
-		PackFile res = new PackFile(pack, extensions);
+		HDFSPackFile res = new HDFSPackFile(pack, extensions);
 		insertPack(res);
 		return res;
 	}
@@ -272,7 +272,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		PackList pList;
 		do {
 			pList = packList.get();
-			for (PackFile p : pList.packs) {
+			for (HDFSPackFile p : pList.packs) {
 				try {
 					if (p.hasObject(objectId))
 						return true;
@@ -305,7 +305,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 	// PackList pList;
 	// do {
 	// pList = packList.get();
-	// for (PackFile p : pList.packs) {
+	// for (HDFSPackFile p : pList.packs) {
 	// try {
 	// p.resolve(matches, id, RESOLVE_ABBREV_LIMIT);
 	// p.resetTransientErrorCount();
@@ -410,14 +410,19 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		do {
 			SEARCH: for (;;) {
 				pList = packList.get();
-				for (PackFile p : pList.packs) {
+				System.out.println("openPackedObject 1 " + pList.packs.length);
+				for (HDFSPackFile p : pList.packs) {
 					try {
+						System.out.println(
+								"openPackedObject 1.5 " + p.getPackName());
 						ObjectLoader ldr = p.get(curs, objectId);
 						p.resetTransientErrorCount();
+						System.out.println("openPackedObject 2");
 						if (ldr != null)
 							return ldr;
 					} catch (PackMismatchException e) {
 						// Pack was modified; refresh the entire pack list.
+						System.out.println("openPackedObject 3");
 						if (searchPacksAgain(pList))
 							continue SEARCH;
 					} catch (IOException e) {
@@ -502,7 +507,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		do {
 			SEARCH: for (;;) {
 				pList = packList.get();
-				for (PackFile p : pList.packs) {
+				for (HDFSPackFile p : pList.packs) {
 					try {
 						long len = p.getObjectSize(curs, id);
 						p.resetTransientErrorCount();
@@ -548,7 +553,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 			throws IOException {
 		PackList pList = packList.get();
 		SEARCH: for (;;) {
-			for (PackFile p : pList.packs) {
+			for (HDFSPackFile p : pList.packs) {
 				try {
 					LocalObjectRepresentation rep = p.representation(curs, otp);
 					p.resetTransientErrorCount();
@@ -574,7 +579,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		}
 	}
 
-	private void handlePackError(IOException e, PackFile p) {
+	private void handlePackError(IOException e, HDFSPackFile p) {
 		String warnTmpl = null;
 		int transientErrorCount = 0;
 		String errTmpl = JGitText.get().exceptionWhileReadingPack;
@@ -748,7 +753,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		return shallowCommitsIds;
 	}
 
-	private void insertPack(PackFile pf) {
+	private void insertPack(HDFSPackFile pf) {
 		PackList o, n;
 		do {
 			o = packList.get();
@@ -757,31 +762,31 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 			// (picked up by a concurrent thread that did a scan?) we
 			// do not want to insert it a second time.
 			//
-			final PackFile[] oldList = o.packs;
+			final HDFSPackFile[] oldList = o.packs;
 			final String name = pf.getPackFile().getName();
-			for (PackFile p : oldList) {
+			for (HDFSPackFile p : oldList) {
 				if (name.equals(p.getPackFile().getName()))
 					return;
 			}
 
-			final PackFile[] newList = new PackFile[1 + oldList.length];
+			final HDFSPackFile[] newList = new HDFSPackFile[1 + oldList.length];
 			newList[0] = pf;
 			System.arraycopy(oldList, 0, newList, 1, oldList.length);
 			n = new PackList(o.snapshot, newList);
 		} while (!packList.compareAndSet(o, n));
 	}
 
-	private void removePack(PackFile deadPack) {
+	private void removePack(HDFSPackFile deadPack) {
 		PackList o, n;
 		do {
 			o = packList.get();
 
-			final PackFile[] oldList = o.packs;
+			final HDFSPackFile[] oldList = o.packs;
 			final int j = indexOf(oldList, deadPack);
 			if (j < 0)
 				break;
 
-			final PackFile[] newList = new PackFile[oldList.length - 1];
+			final HDFSPackFile[] newList = new HDFSPackFile[oldList.length - 1];
 			System.arraycopy(oldList, 0, newList, 0, j);
 			System.arraycopy(oldList, j + 1, newList, j, newList.length - j);
 			n = new PackList(o.snapshot, newList);
@@ -789,7 +794,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		deadPack.close();
 	}
 
-	private static int indexOf(PackFile[] list, PackFile pack) {
+	private static int indexOf(HDFSPackFile[] list, HDFSPackFile pack) {
 		for (int i = 0; i < list.length; i++) {
 			if (list[i] == pack)
 				return i;
@@ -818,11 +823,11 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 
 	// TODO
 	private PackList scanPacksImpl(PackList old) {
-		final Map<String, PackFile> forReuse = reuseMap(old);
+		final Map<String, HDFSPackFile> forReuse = reuseMap(old);
 		// snapshot
 		final HDFSFileSnapshot snapshot = HDFSFileSnapshot.save(packDirectory);
 		final Set<String> names = listPackDirectory();
-		final List<PackFile> list = new ArrayList<>(names.size() >> 2);
+		final List<HDFSPackFile> list = new ArrayList<>(names.size() >> 2);
 		boolean foundNew = false;
 
 		System.out.println("1");
@@ -853,7 +858,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 			final String packName = base + PACK.getExtension();
 			final File packFile = new File(packDirectory, packName);
 			// if cannot find the oid
-			final PackFile oldPack = forReuse.remove(packName);
+			final HDFSPackFile oldPack = forReuse.remove(packName);
 
 			boolean b1 = oldPack != null;
 			boolean b2 = oldPack != null
@@ -867,7 +872,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 				continue;
 			}
 			System.out.println("2.5");
-			list.add(new PackFile(packFile, extensions));
+			list.add(new HDFSPackFile(packFile, extensions));
 			foundNew = true;
 		}
 
@@ -883,7 +888,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 			return old;
 		}
 
-		for (PackFile p : forReuse.values()) {
+		for (HDFSPackFile p : forReuse.values()) {
 			System.out.println("4");
 			p.close();
 		}
@@ -894,14 +899,14 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		System.out
 				.println("5 " + list.size() + " " + list.get(0).getPackName());
 
-		final PackFile[] r = list.toArray(new PackFile[0]);
-		Arrays.sort(r, PackFile.SORT);
+		final HDFSPackFile[] r = list.toArray(new HDFSPackFile[0]);
+		Arrays.sort(r, HDFSPackFile.SORT);
 		return new PackList(snapshot, r);
 	}
 
-	private static Map<String, PackFile> reuseMap(PackList old) {
-		final Map<String, PackFile> forReuse = new HashMap<>();
-		for (PackFile p : old.packs) {
+	private static Map<String, HDFSPackFile> reuseMap(PackList old) {
+		final Map<String, HDFSPackFile> forReuse = new HashMap<>();
+		for (HDFSPackFile p : old.packs) {
 			if (p.invalid()) {
 				// The pack instance is corrupted, and cannot be safely used
 				// again. Do not include it in our reuse map.
@@ -910,7 +915,7 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 				continue;
 			}
 
-			final PackFile prior = forReuse.put(p.getPackFile().getName(), p);
+			final HDFSPackFile prior = forReuse.put(p.getPackFile().getName(), p);
 			if (prior != null) {
 				// This should never occur. It should be impossible for us
 				// to have two pack files with the same name, as all of them
@@ -1031,10 +1036,10 @@ public class HDFSObjectDirectory extends FileObjectDatabase {
 		/** State just before reading the pack directory. */
 		final HDFSFileSnapshot snapshot;
 
-		/** All known packs, sorted by {@link PackFile#SORT}. */
-		final PackFile[] packs;
+		/** All known packs, sorted by {@link HDFSPackFile#SORT}. */
+		final HDFSPackFile[] packs;
 
-		PackList(HDFSFileSnapshot monitor, PackFile[] packs) {
+		PackList(HDFSFileSnapshot monitor, HDFSPackFile[] packs) {
 			this.snapshot = monitor;
 			this.packs = packs;
 		}

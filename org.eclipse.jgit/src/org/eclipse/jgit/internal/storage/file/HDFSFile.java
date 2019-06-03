@@ -32,19 +32,14 @@ public class HDFSFile extends java.io.File {
 	private long modified;
 	private long size;
 
+	/* -- HDFSFile Constructor -- */
+
 	/**
 	 * @param path
 	 */
 	public HDFSFile(String path) {
 		super(path);
-		this.path = path;
-		this.parent = null;
-		this.idx = -1;
-		this.list = null;
-		this.bytes = null;
-		this.isDirectory = false;
-		this.modified = -1;
-		this.size = -1;
+		set(false, path, null, -1, null, null, -1, -1);
 	}
 
 	private HDFSFile(String name, HDFSFile parent, int idx) {
@@ -53,7 +48,38 @@ public class HDFSFile extends java.io.File {
 		this.idx = idx;
 	}
 
-	/* -- build NodeFile -- */
+	/**
+	 * @param parent
+	 * @param child
+	 */
+	public HDFSFile(HDFSFile parent, String child) {
+		super(parent, child);
+		HDFSFile f = parent.findChild(child);
+		set(f.isDirectory, f.path, f.parent, f.idx, f.list, f.bytes, f.modified,
+				f.size);
+	}
+
+	private void set(boolean isDirectory, String path, HDFSFile parent, int idx,
+			List<HDFSFile> list, byte[] bytes, long modified, long size) {
+		this.isDirectory = isDirectory;
+		this.path = path;
+		this.parent = parent;
+		this.idx = idx;
+		this.list = list;
+		this.bytes = bytes;
+		this.modified = modified;
+		this.size = size;
+	}
+
+	private HDFSFile findChild(String child) {
+		HDFSFile file = null;
+		for (HDFSFile f : list)
+			if (f.getName().equals(child))
+				file = f;
+		return file;
+	}
+
+	/* -- build HDFSFile -- */
 
 	/**
 	 * @return HDFSFile
@@ -99,15 +125,16 @@ public class HDFSFile extends java.io.File {
 		}
 	}
 
+	@SuppressWarnings("resource")
 	private byte[] getBytes(File file) {
-		byte[] bytes = new byte[(int) file.length()];
+		byte[] bytes1 = new byte[(int) file.length()];
 
 		FileInputStream fileInputStream = null;
 		try {
 			fileInputStream = new FileInputStream(file);
-			fileInputStream.read(bytes);
+			fileInputStream.read(bytes1);
 			fileInputStream.close();
-			return bytes;
+			return bytes1;
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
@@ -132,9 +159,10 @@ public class HDFSFile extends java.io.File {
 		if (!outputPath.endsWith(File.separator))
 			outputPath += File.separator;
 		writeToFile(outputPath, this);
-		System.out.println("Done writing to " + outputPath);
+		System.out.println("Done writing to " + outputPath); //$NON-NLS-1$
 	}
 
+	@SuppressWarnings("resource")
 	private void writeToFile(String parentPath, HDFSFile node)
 			throws IOException {
 		Stack<String> parentPaths = new Stack<>();
@@ -316,7 +344,7 @@ public class HDFSFile extends java.io.File {
 
 	@Override
 	public void deleteOnExit() {
-
+		// IGNOREME
 	}
 
 	@Override
