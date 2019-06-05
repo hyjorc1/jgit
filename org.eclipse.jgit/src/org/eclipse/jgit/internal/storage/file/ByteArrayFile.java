@@ -41,12 +41,12 @@ public class ByteArrayFile extends java.io.File {
 	public ByteArrayFile(String path) {
 		super(path);
 		set(false, path, null, -1, null, null, -1, -1);
+		build();
 	}
 
 	private ByteArrayFile(String path, ByteArrayFile parent, int idx) {
-		this(path);
-		this.parent = parent;
-		this.idx = idx;
+		super(path);
+		set(false, path, parent, idx, null, null, -1, -1);
 	}
 
 	/**
@@ -107,7 +107,7 @@ public class ByteArrayFile extends java.io.File {
 	/**
 	 * @return HDFSFile
 	 */
-	public ByteArrayFile build() {
+	private ByteArrayFile build() {
 		File file = new File(this.path);
 		Stack<File> files = new Stack<>();
 		Stack<ByteArrayFile> nodes = new Stack<>();
@@ -510,12 +510,5 @@ public class ByteArrayFile extends java.io.File {
 	public String toString() {
 		return getPath();
 	}
-
-	// @Override
-	// private synchronized void writeObject(java.io.ObjectOutputStream s)
-	// throws IOException {
-	// s.defaultWriteObject();
-	// s.writeChar(separatorChar); // Add the separator character
-	// }
 
 }
