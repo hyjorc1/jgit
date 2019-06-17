@@ -107,4 +107,9 @@ public class FileRepositoryBuilder extends
 		return new FileRepositoryBuilder().setGitDir(gitDir).readEnvironment()
 				.build();
 	}
+
+	// @Override
+	// public void finalize() {
+	// System.out.println("object is garbage collected: " + this);
+	// }
 }

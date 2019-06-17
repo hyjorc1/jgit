@@ -23,6 +23,8 @@ public class ByteArrayFile extends java.io.File {
 	private static final long serialVersionUID = 1L;
 
 	private boolean isDirectory;
+	private boolean isBuilt;
+	private boolean exceed;
 	private String path;
 	private ByteArrayFile parent;
 	private int idx;
@@ -40,13 +42,14 @@ public class ByteArrayFile extends java.io.File {
 	 */
 	public ByteArrayFile(String path) {
 		super(path);
-		set(false, path, null, -1, null, null, -1, -1);
-		build();
+		set(false, false, false, path, null, -1, null, null, -1, -1);
+		if (build())
+			isBuilt = true;
 	}
 
 	private ByteArrayFile(String path, ByteArrayFile parent, int idx) {
 		super(path);
-		set(false, path, parent, idx, null, null, -1, -1);
+		set(false, false, false, path, parent, idx, null, null, -1, -1);
 	}
 
 	/**
@@ -58,14 +61,20 @@ public class ByteArrayFile extends java.io.File {
 		if (parent instanceof ByteArrayFile) {
 			ByteArrayFile f = ((ByteArrayFile) parent).findChild(child);
 			if (f != null)
-				set(f.isDirectory, f.path, f.parent, f.idx, f.list, f.bytes,
+				set(f.isDirectory, f.isBuilt, f.exceed, f.path, f.parent, f.idx,
+						f.list,
+						f.bytes,
 						f.modified, f.size);
 		}
 	}
 
-	private void set(boolean isDirectory, String path, ByteArrayFile parent, int idx,
+	private void set(boolean isDirectory, boolean isBuilt, boolean exceed,
+			String path,
+			ByteArrayFile parent, int idx,
 			List<ByteArrayFile> list, byte[] bytes, long modified, long size) {
 		this.isDirectory = isDirectory;
+		this.isBuilt = isBuilt;
+		this.exceed = exceed;
 		this.path = path;
 		this.parent = parent;
 		this.idx = idx;
@@ -107,7 +116,7 @@ public class ByteArrayFile extends java.io.File {
 	/**
 	 * @return HDFSFile
 	 */
-	private ByteArrayFile build() {
+	private boolean build() {
 		File file = new File(this.path);
 		Stack<File> files = new Stack<>();
 		Stack<ByteArrayFile> nodes = new Stack<>();
@@ -119,6 +128,8 @@ public class ByteArrayFile extends java.io.File {
 			if (curFile.isFile()) {
 				curNode.updateModifiedAndSize(curFile);
 				curNode.isDirectory = false;
+				if (exceed)
+					return false;
 				curNode.bytes = getBytes(curFile);
 			} else {
 				curNode.updateModifiedAndSize(curFile);
@@ -133,7 +144,7 @@ public class ByteArrayFile extends java.io.File {
 				}
 			}
 		}
-		return this;
+		return true;
 	}
 
 	private void updateModifiedAndSize(File curFile) {
@@ -148,27 +159,35 @@ public class ByteArrayFile extends java.io.File {
 		}
 	}
 
+	/**
+	 * @param file
+	 * @return null
+	 */
 	@SuppressWarnings("resource")
-	private byte[] getBytes(File file) {
-		byte[] bytes1 = new byte[(int) file.length()];
-
-		FileInputStream fileInputStream = null;
-		try {
-			fileInputStream = new FileInputStream(file);
-			fileInputStream.read(bytes1);
-			fileInputStream.close();
-			return bytes1;
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			if (fileInputStream != null) {
-				try {
-					fileInputStream.close();
-				} catch (IOException e) {
-					e.printStackTrace();
+	public static byte[] getBytes(File file) {
+		if (file.length() <= Integer.MAX_VALUE / 3) {
+			byte[] ba = new byte[(int) file.length()];
+			FileInputStream fileInputStream = null;
+			try {
+				fileInputStream = new FileInputStream(file);
+				fileInputStream.read(ba);
+				fileInputStream.close();
+				return ba;
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (fileInputStream != null) {
+					try {
+						fileInputStream.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
+		// else {
+		// exceed = true;
+		// }
 		return null;
 	}
 
@@ -220,6 +239,34 @@ public class ByteArrayFile extends java.io.File {
 				}
 			}
 		}
+	}
+
+	/**
+	 * @return isBuilt
+	 */
+	public boolean isBuilt() {
+		return isBuilt;
+	}
+
+	/**
+	 * @param isBuilt
+	 */
+	public void setBuilt(boolean isBuilt) {
+		this.isBuilt = isBuilt;
+	}
+
+	/**
+	 * @return exceed
+	 */
+	public boolean isExceed() {
+		return exceed;
+	}
+
+	/**
+	 * @param exceed
+	 */
+	public void setExceed(boolean exceed) {
+		this.exceed = exceed;
 	}
 
 	/**
@@ -510,5 +557,4 @@ public class ByteArrayFile extends java.io.File {
 	public String toString() {
 		return getPath();
 	}
-
 }
