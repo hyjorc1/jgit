@@ -1,8 +1,6 @@
 package org.eclipse.jgit.internal.storage.file;
 
 import java.io.IOException;
-//import java.text.MessageFormat;
-
 import org.eclipse.jgit.attributes.AttributesNodeProvider;
 //import org.eclipse.jgit.internal.JGitText;
 import org.eclipse.jgit.lib.BaseRepositoryBuilder;
@@ -68,6 +66,16 @@ public class ByteArrayFileRepository extends Repository {
 				(ByteArrayFile) options.getObjectDirectory(),
 				getFS(),
 				new ByteArrayFile(getDirectory(), Constants.SHALLOW));
+	}
+
+	/**
+	 * Invoked when the use count drops to zero during {@link #close()}.
+	 * <p>
+	 * The default implementation closes the object and ref databases.
+	 */
+	@Override
+	protected void doClose() {
+		getObjectDatabase().close();
 	}
 
 	@Override

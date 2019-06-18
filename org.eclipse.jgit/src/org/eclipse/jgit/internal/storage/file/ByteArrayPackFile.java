@@ -403,6 +403,7 @@ public class ByteArrayPackFile extends PackFile {
 				// CHECKME
 				fd = new ByteArrayFileInputStream(packFile);
 				length = packFile.length();
+				// onOpenPack();
 			}
 		} catch (RuntimeException ge) {
 			// generic exceptions could be transient so we should not mark the
@@ -447,7 +448,7 @@ public class ByteArrayPackFile extends PackFile {
 			if (length < pos + size)
 				size = (int) (length - pos);
 			final byte[] buf = new byte[size];
-			fd.reset();
+			fd.reset(); // CHECKME
 			fd.skip(pos);
 			fd.read(buf, 0, size);
 			return new ByteArrayWindow(this, pos, buf);
