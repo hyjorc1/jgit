@@ -24,7 +24,7 @@ public class ByteArrayFile extends java.io.File {
 
 	private boolean isDirectory;
 	private boolean isBuilt;
-	private boolean exceed;
+
 	private String path;
 	private ByteArrayFile parent;
 	private int idx;
@@ -42,14 +42,14 @@ public class ByteArrayFile extends java.io.File {
 	 */
 	public ByteArrayFile(String path) {
 		super(path);
-		set(false, false, false, path, null, -1, null, null, -1, -1);
+		set(false, false, path, null, -1, null, null, -1, -1);
 		if (build())
 			isBuilt = true;
 	}
 
 	private ByteArrayFile(String path, ByteArrayFile parent, int idx) {
 		super(path);
-		set(false, false, false, path, parent, idx, null, null, -1, -1);
+		set(false, false, path, parent, idx, null, null, -1, -1);
 	}
 
 	/**
@@ -61,20 +61,19 @@ public class ByteArrayFile extends java.io.File {
 		if (parent instanceof ByteArrayFile) {
 			ByteArrayFile f = ((ByteArrayFile) parent).findChild(child);
 			if (f != null)
-				set(f.isDirectory, f.isBuilt, f.exceed, f.path, f.parent, f.idx,
+				set(f.isDirectory, f.isBuilt, f.path,
+						f.parent, f.idx,
 						f.list,
 						f.bytes,
 						f.modified, f.size);
 		}
 	}
 
-	private void set(boolean isDirectory, boolean isBuilt, boolean exceed,
-			String path,
+	private void set(boolean isDirectory, boolean isBuilt, String path,
 			ByteArrayFile parent, int idx,
 			List<ByteArrayFile> list, byte[] bytes, long modified, long size) {
 		this.isDirectory = isDirectory;
 		this.isBuilt = isBuilt;
-		this.exceed = exceed;
 		this.path = path;
 		this.parent = parent;
 		this.idx = idx;
@@ -128,9 +127,9 @@ public class ByteArrayFile extends java.io.File {
 			if (curFile.isFile()) {
 				curNode.updateModifiedAndSize(curFile);
 				curNode.isDirectory = false;
-				if (exceed)
-					return false;
 				curNode.bytes = getBytes(curFile);
+				if (curNode.bytes == null)
+					return false;
 			} else {
 				curNode.updateModifiedAndSize(curFile);
 				curNode.isDirectory = true;
@@ -164,7 +163,7 @@ public class ByteArrayFile extends java.io.File {
 	 * @return null
 	 */
 	@SuppressWarnings("resource")
-	public static byte[] getBytes(File file) {
+	public byte[] getBytes(File file) {
 		if (file.length() <= Integer.MAX_VALUE / 3) {
 			byte[] ba = new byte[(int) file.length()];
 			FileInputStream fileInputStream = null;
@@ -185,9 +184,6 @@ public class ByteArrayFile extends java.io.File {
 				}
 			}
 		}
-		// else {
-		// exceed = true;
-		// }
 		return null;
 	}
 
@@ -253,20 +249,6 @@ public class ByteArrayFile extends java.io.File {
 	 */
 	public void setBuilt(boolean isBuilt) {
 		this.isBuilt = isBuilt;
-	}
-
-	/**
-	 * @return exceed
-	 */
-	public boolean isExceed() {
-		return exceed;
-	}
-
-	/**
-	 * @param exceed
-	 */
-	public void setExceed(boolean exceed) {
-		this.exceed = exceed;
 	}
 
 	/**
